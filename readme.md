@@ -1,4 +1,6 @@
 # Projeto Leviatã - Telemetria
+![](./images/logo_leviata.png)
+
 
 Este repositório contém uma coleção de códigos de telemetria desenvolvidos para o **Projeto Leviatã**, com o objetivo de monitorar, coletar e analisar dados em tempo real de diferentes sistemas.
 
