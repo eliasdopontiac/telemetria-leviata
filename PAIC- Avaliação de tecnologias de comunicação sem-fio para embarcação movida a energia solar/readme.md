@@ -1,5 +1,5 @@
 # Projeto Leviatã - Telemetria
-![](.images/barco.jpg)
+![](./imagens/Imagem%20do%20WhatsApp%20de%202025-02-28%20à(s)%2020.55.47_0a4559fe.jpg)
 
 Essa pasta contém os códigos que foram utilizados no Paic com tema:
 
