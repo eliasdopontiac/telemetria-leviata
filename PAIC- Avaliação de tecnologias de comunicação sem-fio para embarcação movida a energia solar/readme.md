@@ -1,5 +1,6 @@
 # Projeto Leviatã - Telemetria
-![](.\PAIC- Avaliação de tecnologias de comunicação sem-fio para embarcação movida a energia solar\imagens\Imagem do WhatsApp de 2025-02-28 à(s) 20.55.47_0a4559fe.jpg)
+![Imagem](PAIC- Avaliação de tecnologias de comunicação sem-fio para embarcação movida a energia solar/imagens/Imagem do WhatsApp de 2025-02-28 à(s) 20.55.47_0a4559fe.jpg)
+
 
 Essa pasta contém os códigos que foram utilizados no Paic com tema:
 
