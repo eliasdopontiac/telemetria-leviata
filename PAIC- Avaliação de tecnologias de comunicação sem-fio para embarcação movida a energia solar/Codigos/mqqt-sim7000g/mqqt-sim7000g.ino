@@ -1,34 +1,20 @@
 #define TINY_GSM_MODEM_SIM7000
-
-// Set serial for debug console (to the Serial Monitor, default speed 115200)
 #define SerialMon Serial
-
-// Set serial for AT commands (to the module)
 #define SerialAT Serial1
-
-// See all AT commands, if wanted
-//#define DUMP_AT_COMMANDS
-
-// Define the serial console for debug prints, if needed
 #define TINY_GSM_DEBUG SerialMon
-
 #define TINY_GSM_USE_GPRS true
 #define TINY_GSM_USE_WIFI false
 
-
-// set GSM PIN, if any
 #define GSM_PIN ""
 
-// Your GPRS credentials, if any
+// credenciais GPRS
 const char apn[]      = "claro.com.br";
 const char gprsUser[] = "claro";
 const char gprsPass[] = "claro";
-
-// Your WiFi connection credentials, if applicable
+// credenciais do WIFI
 const char wifiSSID[] = "UEA-EDU";
-const char wifiPass[] = "120720";
-
-// MQTT details
+const char wifiPass[] = "12072022";
+// credenciais do mqtt
 const char *broker = "test.mosquitto.org";
 const int mqtt_port = 1883;
 
@@ -50,11 +36,12 @@ const int mqtt_port = 1883;
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
+#define OLED_SDA 21
+#define OLED_SCK 22
 #define OLED_ADDR 0x3C  // Endereço I2C do display
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-// Just in case someone defined the wrong thing..
 #if TINY_GSM_USE_GPRS && not defined TINY_GSM_MODEM_HAS_GPRS
 #undef TINY_GSM_USE_GPRS
 #undef TINY_GSM_USE_WIFI
@@ -194,10 +181,10 @@ void enviarmppt() {
       Serial.println(" W");
       mqtt.publish("node-red/mppt/Potencia", String(potencia, 4).c_str());
   }
-    
+  Serial.println("^^^^^^^^^^^^^^^^^^^^^^mppt^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
    static unsigned long prev_millis;
 }
-Serial.println("^^^^^^^^^^^^^^^^^^^^^^mppt^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+
 }
 
 
@@ -231,15 +218,16 @@ void setup()
 
     pinMode(PWR_PIN, OUTPUT);
     digitalWrite(PWR_PIN, HIGH);
-    // Starting the machine requires at least 1 second of low level, and with a level conversion, the levels are opposite
     delay(1000);
     digitalWrite(PWR_PIN, LOW);
 
-    Serial.println("\nWait...");
+    Serial.println("\espera...");
     Serial.println("\n----------------------------------");
 
     delay(1000);
     SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
+    
+    Wire.begin(OLED_SDA, OLED_SCK); 
 
 
  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
@@ -262,7 +250,7 @@ void setup()
 
     // Restart takes quite some time
     // To skip it, call init() instead of restart()
-    Serial.println("Initializing modem...");
+    Serial.println("Inicializando SIM7000G...");
     if (!modem.restart()) {
         Serial.println("Failed to restart modem, attempting to continue without restarting");
     }
@@ -271,25 +259,15 @@ void setup()
           13 – GSM Only
           14 – WCDMA Only
           38 – LTE Only
-          59 – TDS-CDMA Only
-          9 – CDMA Only
-          10 – EVDO Only
-          19 – GSM+WCDMA Only
-          22 – CDMA+EVDO Only
           48 – Any but LTE
-          60 – GSM+TDSCDMA Only
-          63 – GSM+WCDMA+TDSCDMA Only
-          67 – CDMA+EVDO+GSM+WCDMA+TDSCDMA Only
-          39 – GSM+WCDMA+LTE Only
           51 – GSM+LTE Only
-          54 – WCDMA+LTE Only
     */
   String ret;
     //    do {
     //        ret = modem.setNetworkMode(2);
     //        delay(500);
     //    } while (ret != "OK");
-    ret = modem.setNetworkMode(13);
+    ret = modem.setNetworkMode(48);
     DBG("setNetworkMode:", ret);
 
 
@@ -307,14 +285,14 @@ void setup()
 #endif
 
 #if TINY_GSM_USE_WIFI
-    // Wifi connection parameters must be set before waiting for the network
+    // Os parâmetros de conexão Wi-Fi devem ser definidos antes de aguardar a rede
     SerialMon.print(F("Setting SSID/password..."));
     if (!modem.networkConnect(wifiSSID, wifiPass)) {
-        SerialMon.println(" fail");
+        SerialMon.println("falha!");
         delay(1000);
         return;
     }
-    SerialMon.println(" success");
+    SerialMon.println(" sucesso");
 #endif
 
     SerialMon.print("Waiting for network...");
@@ -330,18 +308,18 @@ void setup()
     }
 
 #if TINY_GSM_USE_GPRS
-    // GPRS connection parameters are usually set after network registration
-    SerialMon.print(F("Connecting to "));
+    // Os parâmetros de conexão GPRS geralmente são definidos após o registro da rede
+    SerialMon.print(F("Conectando para: "));
     SerialMon.print(apn);
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
         SerialMon.println(" fail");
         delay(100);
         return;
     }
-    SerialMon.println(" success");
+    SerialMon.println(" successo");
 
     if (modem.isGprsConnected()) {
-        SerialMon.println(" connected");
+        SerialMon.println(" conectado");
     }
 #endif
 
@@ -359,20 +337,20 @@ void loop()
     qualidadeSINAL();
     enviarmppt();
     delay(200);
-    // Make sure we're still registered on the network
+    //Certifique-se de que ainda estamos registrados na rede
     if (!modem.isNetworkConnected()) {
-        SerialMon.println("Network disconnected");
+        SerialMon.println("rede desconectada");
         if (!modem.waitForNetwork(180000L, true)) {
             SerialMon.println(" fail");
             delay(1000);
             return;
         }
         if (modem.isNetworkConnected()) {
-            SerialMon.println("Network re-connected");
+            SerialMon.println(" rede reconectada");
         }
 
 #if TINY_GSM_USE_GPRS
-        // and make sure GPRS/EPS is still connected
+        // e certifique-se de que o GPRS/EPS ainda esteja conectado
         if (!modem.isGprsConnected()) {
             SerialMon.println(" disconnected!");
             SerialMon.print(F("Connecting to "));
@@ -390,7 +368,7 @@ void loop()
     }
 
     if (!mqtt.connected()) {
-        SerialMon.println("=== MQTT NOT CONNECTED ===");
+        SerialMon.println("=== MQTT NÃO FOI CONECTADO ===");
         // Reconnect every 10 seconds
         uint32_t t = millis();
         if (t - lastReconnectAttempt > 10000L) {
