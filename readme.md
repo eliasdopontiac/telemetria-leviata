@@ -41,10 +41,6 @@ O projeto utiliza uma combinação de protocolos e dispositivos para garantir a 
 2.  **Instale as bibliotecas:** As bibliotecas necessárias estão na pasta `/bibliotecas`. Certifique-se de adicioná-las ao seu ambiente de desenvolvimento (Arduino IDE ou PlatformIO).
 3.  **Configuração:** Verifique os arquivos de configuração nos diretórios de cada ano para ajustar as credenciais de rede ou parâmetros dos sensores.
 
-## 🏆 Conquistas e Pesquisa
-
-Este trabalho faz parte do esforço técnico que levou a equipe Leviatã a ser a única representante do Norte no **Desafio Solar Brasil 2023**, terminando no **Top 10 nacional**. Além disso, o projeto está vinculado à pesquisa PAIC/UEA focada em otimização de comunicação sem fio em ambiente amazônico.
-
 ## 👥 Contato
 
 **Elias Cunha** - *Electrical Lead na Equipe Leviatã*
