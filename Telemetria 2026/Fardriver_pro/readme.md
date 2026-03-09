@@ -18,9 +18,8 @@ O sistema evoluiu de **scripts experimentais** para uma **aplicação estruturad
 
 A aplicação possui uma **interface gráfica em tempo real** para monitoramento dos dados do controlador.
 
-![Dashboard](Dashboard.png)
+![Dashboard](images/Dashboard.png)
 
-*(adicione aqui uma captura da interface do sistema)*
 
 ---
 
