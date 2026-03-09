@@ -20,7 +20,7 @@ A aplicação possui uma **interface gráfica em tempo real** para monitoramento
 
 ![Dashboard](images/Dashboard.png)
 
-
+![Dasboard](images/Dashboard.png)
 ---
 
 # 🏗️ Arquitetura do Sistema
