@@ -18,7 +18,8 @@ O sistema evoluiu de **scripts experimentais** para uma **aplicação estruturad
 
 A aplicação possui uma **interface gráfica em tempo real** para monitoramento dos dados do controlador.
 
-![Telemetria 2026 real-time dashboard interface showing RPM, voltage, current, and temperature gauges with live data monitoring from the Fardriver controller](images/Dashboard.png)
+![Dashboard Fardriver](Telemetria2026\images\Dashboard.png)
+![Logo Leviatã](../images/logo_leviata.png) 
 ---
 
 # 🏗️ Arquitetura do Sistema
