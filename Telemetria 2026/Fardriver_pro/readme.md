@@ -18,7 +18,7 @@ O sistema evoluiu de **scripts experimentais** para uma **aplicação estruturad
 
 A aplicação possui uma **interface gráfica em tempo real** para monitoramento dos dados do controlador.
 
-![Dashboard](dashboard.png)
+![Dashboard](Dashboard.png)
 
 *(adicione aqui uma captura da interface do sistema)*
 
@@ -215,7 +215,7 @@ Basta executar o `.exe`.
 # 👨‍🔧 Equipe
 
 **Elias Cunha**  
-Electrical Lead — Equipe Leviatã
+gênio da bola — Equipe Leviatã
 
 📧 ehlc.eai22@uea.edu.br  
 
