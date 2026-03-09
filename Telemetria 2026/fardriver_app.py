@@ -509,4 +509,4 @@ class FardriverApp(ctk.CTk):
 
 if __name__ == "__main__":
     app = FardriverApp()
-    app.mainloop()
+    app.mainloop()                                      
