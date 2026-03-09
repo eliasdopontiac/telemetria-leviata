@@ -18,9 +18,7 @@ O sistema evoluiu de **scripts experimentais** para uma **aplicação estruturad
 
 A aplicação possui uma **interface gráfica em tempo real** para monitoramento dos dados do controlador.
 
-![Dashboard Fardriver](Telemetria2026\images\Dashboard.png)
-![Logo Leviatã](../images/logo_leviata.png) 
----
+![DASHBAORD](Dashboard.png)
 
 # 🏗️ Arquitetura do Sistema
 
