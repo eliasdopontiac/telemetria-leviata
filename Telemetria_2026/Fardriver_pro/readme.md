@@ -3,28 +3,40 @@
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
 ![Serial](https://img.shields.io/badge/Comunicação-Serial-green)
 ![PyQt5](https://img.shields.io/badge/UI-PyQt5-orange)
-![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow)
+![Status](https://img.shields.io/badge/Status-Ativo-success)
 ![Equipe](https://img.shields.io/badge/Equipe-Leviatã%20UEA-red)
 
-Bem-vindo ao diretório de **Telemetria (Temporada 2026)** da **Equipe Leviatã (UEA)**.  
+Bem-vindo ao diretório de **Telemetria (Temporada 2026)** da **Equipe Leviatã (UEA)**.
 
-Este repositório centraliza todo o **ecossistema de software desenvolvido para aquisição de dados do veículo**, com foco na **comunicação serial com o controlador Fardriver**.
+Este repositório centraliza todo o **ecossistema de software desenvolvido para aquisição de dados do veículo**, com foco na comunicação serial com o controlador **Fardriver** (arquitetura ND72450).
 
-O sistema evoluiu de **scripts experimentais** para uma **aplicação estruturada com dashboard em tempo real**, permitindo acompanhar **parâmetros críticos do motor** durante testes e competições como o **Desafio Solar Brasil**.
+O sistema evoluiu de scripts experimentais para uma **aplicação estruturada com dashboard em tempo real e geração de relatórios offline**, permitindo acompanhar parâmetros críticos do motor durante testes de bancada e competições como o **Desafio Solar Brasil**.
 
 ---
 
-# 📊 Dashboard
+# 📊 Dashboard & Relatórios
 
-A aplicação possui uma **interface gráfica em tempo real** para monitoramento dos dados do controlador.
+A aplicação possui uma **interface gráfica em tempo real** otimizada para alto desempenho, capaz de gravar até **1 hora de dados contínuos na memória RAM** sem travamentos.
 
-![DASHBAORD](Dashboard.gif)
+![DASHBOARD](Dashboard.gif)
+
+## 📄 Relatórios Offline de Engenharia
+
+Além do monitoramento ao vivo, o sistema conta com um **Gerador de Relatórios Web (.html)**.
+
+Com um clique, os dados do teste são exportados para um documento interativo (usando **Chart.js**), exibindo:
+
+- Picos absolutos de **Corrente e RPM**
+- Médias e picos de **Temperatura (Motor e Controladora)**
+- Gráficos trifásicos (**RPM, Amperes, Volts**) separados para análise de desempenho
+
+---
 
 # 🏗️ Arquitetura do Sistema
 
-A arquitetura do sistema é dividida em três camadas principais:
+A arquitetura do sistema segue o padrão **MVC (Model-View-Controller) modificado**, dividida em camadas principais:
 
-```
+```text
 Fardriver Controller
         │
         │ Serial (19200 bps)
@@ -34,19 +46,11 @@ USB-TTL Adapter
         │
 Python Application
         │
- ├── Serial Communication
- │
- ├── Packet Parser (CRC / Checksum)
- │
- └── Dashboard UI
+ ├── Fardriver Serial (Comunicação UART / Keep-Alive / Checksum)
+ ├── Heb Parser (Decodificador de Backups Fardriver)
+ ├── Report Generator (Montagem de HTML offline com Chart.js)
+ └── Dashboard UI (Frontend em PyQt5 + PyQtGraph)
 ```
-
-Fluxo de funcionamento:
-
-1. O **controlador Fardriver** envia pacotes pela interface serial  
-2. O módulo **fardriver_serial.py** recebe os dados  
-3. O **heb_parser.py** decodifica e valida os pacotes  
-4. A **ui_dashboard.py** atualiza os valores em tempo real  
 
 ---
 
@@ -56,128 +60,81 @@ O projeto está dividido entre a **versão consolidada da aplicação** e **scri
 
 ## 📦 Fardriver_pro/
 
-Núcleo do sistema pronto para execução.
+Núcleo do sistema pronto para execução e distribuição.
 
-```
+```text
 Fardriver_pro/
 │
-├── main.py
-├── fardriver_serial.py
-├── heb_parser.py
-├── ui_dashboard.py
+├── main.py                 # Ponto de entrada da aplicação
+├── fardriver_serial.py     # Gerencia comunicação serial e bytes de comando
+├── heb_parser.py           # Decodifica arquivos .HEB da Fardriver
+├── report_generator.py     # Lógica visual da geração de relatórios
+├── ui_dashboard.py         # Interface gráfica e telemetria
+├── logo.png                # Logotipo da UI e relatórios
 │
-├── FardriverPro.spec
-└── dist/
+└── dist/                   # Executável gerado com PyInstaller
 ```
-
-Arquivos principais:
-
-- **main.py**  
-  Ponto de entrada da aplicação.
-
-- **fardriver_serial.py**  
-  Gerencia comunicação serial e sistema Keep-Alive.
-
-- **heb_parser.py**  
-  Decodifica e valida pacotes do protocolo Fardriver.
-
-- **ui_dashboard.py**  
-  Interface gráfica em tempo real.
-
-- **dist/**  
-  Executável gerado com **PyInstaller**.
 
 ---
 
 ## 🧪 Scripts de Prototipagem
 
-Experimentos realizados durante o desenvolvimento da dashboard.
+Experimentos realizados durante o desenvolvimento do dashboard:
 
-```
-Fardriver_matplotlib.py
-Fardriver_PyQtGrafs.py
-fardriver_streamlit.py
-```
-
----
-
-## 🧱 Primeiras versões
-
-Primeiras tentativas de leitura serial e interface.
-
-```
-Fardriver.py
-fardriver_app.py
-fardriver_UI_teste.py
-```
+- `Fardriver_matplotlib.py`
+- `Fardriver_PyQtGrafs.py`
+- `fardriver_streamlit.py`
+- `Fardriver.py` *(primeiras tentativas de leitura serial)*
 
 ---
 
 # ⚙️ Tecnologias Utilizadas
 
-### Linguagem
+Para garantir **leveza e velocidade na leitura de dados (10Hz)**:
 
-- Python
+- **Linguagem:** Python 3.8+
+- **Interface Gráfica:** PyQt5
+- **Gráficos em Tempo Real:** PyQtGraph *(substituindo Matplotlib para maior FPS)*
+- **Gráficos de Relatório:** Chart.js *(injeção via HTML)*
+- **Comunicação:** PySerial *(USB-TTL)*
 
-### Bibliotecas
+## 📡 Estrutura do Protocolo Fardriver
 
-- PyQt5
-- Matplotlib
-- Streamlit
-- PySerial
-
-### Comunicação
-
-- Serial via **USB-TTL**
-
-### Configuração Serial
-
-```
-Baud Rate: 19200
-Data Bits: 8
-Parity: None
-Stop Bits: 1
-```
-
-### Estrutura do Protocolo Fardriver
-
-```
-Header → Length → Payload → CRC → End Byte
+```text
+Header (0xAA) → Command/Address → Payload → CRC → Not-Checksum
 ```
 
 ---
 
 # 🛠️ Funcionalidades
 
-- [x] Leitura de **RPM**
-- [x] Monitoramento de **tensão do sistema**
-- [x] Monitoramento de **corrente**
-- [x] Monitoramento de **temperatura**
-- [x] Validação de pacotes via **CRC**
-- [x] Interface gráfica em tempo real
-- [x] Geração de executável standalone
+- [x] Leitura ao vivo de **RPM, Corrente, Tensão e Potência**
+- [x] Monitoramento térmico (**Motor e MOSFET**)
+- [x] Gráficos com **janela deslizante** e memória de fundo para **1 hora de teste**
+- [x] Gerador de **Relatório HTML** *(Exportação em PDF)*
+- [x] Ajuste e envio de parâmetros (**Corrente, Polos, Throttle, WeakA**)
+- [x] Comandos de manutenção (**Auto-Learn e Factory Reset**)
+- [x] Leitura de arquivos de backup **`.HEB`**
 
 ---
 
-# 📦 Instalação
+# 📦 Instalação (Para Desenvolvedores)
 
-Certifique-se de ter o **Python instalado**.
-
-Instale as dependências:
+Certifique-se de ter o Python instalado.
 
 ```bash
-pip install pyserial PyQt5 matplotlib streamlit
+pip install pyserial PyQt5 pyqtgraph pyinstaller
 ```
 
 ---
 
 # 🔌 Conexão com o Controlador
 
-Use um **adaptador USB-TTL**.
+Use um adaptador **USB-TTL (RS485/UART)**.
 
-Conexões necessárias:
+O cruzamento dos cabos é fundamental:
 
-```
+```text
 TX (Fardriver)  -> RX (PC)
 RX (Fardriver)  -> TX (PC)
 GND (Fardriver) -> GND (PC)
@@ -185,45 +142,45 @@ GND (Fardriver) -> GND (PC)
 
 ---
 
-# ▶️ Execução
+# ▶️ Execução e Compilação
 
-## Modo desenvolvimento
+## 1️⃣ Modo Desenvolvimento
 
-```
-cd Fardriver_pro
+```bash
+cd Telemetria_2026/Fardriver_pro
 python main.py
 ```
 
----
+## 2️⃣ Gerar Executável (Standalone)
 
-## Executável
+Para criar a versão final `.exe`:
 
-A versão compilada está em:
-
-```
-Fardriver_pro/dist/
+```bash
+pyinstaller --noconsole --onefile --add-data "logo.png;." main.py
 ```
 
-Basta executar o `.exe`.
+O executável final estará em:
+
+```text
+dist/
+```
 
 ---
 
 # 👨‍🔧 Equipe
 
 **Elias Cunha**  
-gênio da bola — Equipe Leviatã
+Gênio da bola — Equipe Leviatã
 
 📧 ehlc.eai22@uea.edu.br  
-
-📸 Instagram  
-@leviatauea
+📸 Instagram: @leviatauea
 
 ---
 
 # 🌿 Sobre a Equipe Leviatã
 
-A **Equipe Leviatã (UEA)** desenvolve tecnologias voltadas à **mobilidade sustentável**, participando de competições como o **Desafio Solar Brasil**, promovendo inovação tecnológica na Amazônia.
+A **Equipe Leviatã (UEA)** desenvolve tecnologias voltadas à **mobilidade sustentável**, participando de competições como o **Desafio Solar Brasil**, promovendo inovação tecnológica e engenharia de ponta na Amazônia.
 
 ---
 
-⭐ Desenvolvido com foco em **engenharia, inovação e sustentabilidade na Amazônia**
+⭐ Desenvolvido com foco em **engenharia, inovação e sustentabilidade**
