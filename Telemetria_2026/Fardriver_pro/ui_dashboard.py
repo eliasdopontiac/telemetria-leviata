@@ -1,4 +1,7 @@
 import sys
+import os
+import webbrowser
+from datetime import datetime
 from collections import deque
 import serial.tools.list_ports
 
@@ -6,13 +9,24 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QPushButton, QComboBox, 
                              QSlider, QFrame, QMessageBox, QScrollArea, QFileDialog)
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap
 
 import pyqtgraph as pg
+
+def resource_path(relative_path):
+    """ Descobre o caminho absoluto, funcione o código normal ou como .exe """
+    try:
+        # O PyInstaller cria uma pasta temporária _MEIPASS e guarda o caminho nela
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 # Importa os nossos módulos personalizados
 from fardriver_serial import FardriverSerial
 from heb_parser import HebParser
+from report_generator import ReportGenerator
 
 STYLESHEET = """
 QMainWindow { background-color: #0E1117; }
@@ -26,6 +40,8 @@ QPushButton#BtnHeb { background-color: #005580; border: 1px solid #00AAFF; }
 QPushButton#BtnHeb:hover { background-color: #00AAFF; color: black; }
 QPushButton#BtnFactoryReset { background-color: #8B0000; color: white; border: 1px solid #FF0000; }
 QPushButton#BtnFactoryReset:hover { background-color: #FF0000; border: 1px solid #FF6666; }
+QPushButton#BtnRelatorio { background-color: #198754; color: white; border: 1px solid #146c43; }
+QPushButton#BtnRelatorio:hover { background-color: #157347; border: 1px solid #0a3622; }
 QComboBox { background-color: #262730; color: white; border: 1px solid #4B4C52; padding: 5px; border-radius: 4px; }
 QComboBox:disabled { background-color: #1a1b20; color: #555555; border: 1px solid #333333; }
 QSlider::groove:horizontal { border: 1px solid #4B4C52; height: 4px; background: #4B4C52; border-radius: 2px; }
@@ -118,12 +134,15 @@ class FardriverApp(QMainWindow):
         self.backend = FardriverSerial()
         self.prev_telemetry = self.backend.telemetry.copy()
         
-        self.max_pts = 100
-        self.x_data = list(range(self.max_pts))
-        self.hist_rpm = deque([0]*self.max_pts, maxlen=self.max_pts)
-        self.hist_curr = deque([0.0]*self.max_pts, maxlen=self.max_pts)
-        self.hist_volt = deque([48.0]*self.max_pts, maxlen=self.max_pts)
-
+       # Memória para a TELA (Janela deslizante de 100 pontos)
+        self.max_pts_tela = 100 
+        
+        # Memória FULL para o RELATÓRIO (Listas infinitas)
+        self.hist_rpm_full = []
+        self.hist_curr_full = []
+        self.hist_volt_full = []
+        self.hist_temp_motor_full = []
+        self.hist_temp_ctrl_full = []
         self._setup_ui()
 
         self.timer = QTimer()
@@ -146,7 +165,25 @@ class FardriverApp(QMainWindow):
         header_frame = QFrame()
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(20,20,20,10)
-        header_layout.addWidget(QLabel("🐍 Fardriver Pro", font=QFont("Segoe UI", 16, QFont.Bold)))
+        
+        # --- LOGOTIPO DO LEVIATÃ ---
+        logo_layout = QHBoxLayout()
+        lbl_logo_img = QLabel()
+        
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Usa a função mágica para achar a logo dentro do .exe
+        logo_path = resource_path("logo.png")
+        
+        pixmap = QPixmap(logo_path) 
+        if not pixmap.isNull():
+            lbl_logo_img.setPixmap(pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            logo_layout.addWidget(lbl_logo_img)
+            
+        lbl_titulo = QLabel("Fardriver Pro", font=QFont("Segoe UI", 16, QFont.Bold))
+        logo_layout.addWidget(lbl_titulo)
+        logo_layout.addStretch() 
+        
+        header_layout.addLayout(logo_layout)
         header_layout.addWidget(QLabel("Interface Desacoplada (MVC)", font=QFont("Segoe UI", 10)))
         header_layout.addSpacing(10)
         
@@ -155,6 +192,13 @@ class FardriverApp(QMainWindow):
         self.btn_load_heb.clicked.connect(self.carregar_ficheiro_heb)
         header_layout.addWidget(self.btn_load_heb)
         
+        # --- NOVO BOTÃO DE RELATÓRIO WEB ---
+        self.btn_relatorio = QPushButton("📄 Gerar Relatório Web")
+        self.btn_relatorio.setObjectName("BtnRelatorio")
+        self.btn_relatorio.clicked.connect(self.gerar_relatorio_html)
+        header_layout.addWidget(self.btn_relatorio)
+        # -----------------------------------
+
         # --- CAIXA COM SELETOR DE PORTAS E BOTÃO REFRESH ---
         box_portas = QHBoxLayout()
         self.cb_portas = QComboBox()
@@ -167,9 +211,8 @@ class FardriverApp(QMainWindow):
         box_portas.addWidget(self.btn_refresh)
         header_layout.addLayout(box_portas)
         
-        self.atualizar_lista_portas() # Preenche as portas na inicialização
-        # ---------------------------------------------------
-
+        self.atualizar_lista_portas()
+        
         self.btn_ligar = QPushButton("Ligar / Desligar")
         self.btn_ligar.setObjectName("BtnLigar")
         self.btn_ligar.clicked.connect(self.toggle_conexao)
@@ -343,7 +386,6 @@ class FardriverApp(QMainWindow):
         main_layout.addWidget(content)
 
     def atualizar_lista_portas(self):
-        """Busca todas as portas COM disponíveis no Windows/Linux e atualiza a ComboBox"""
         self.cb_portas.clear()
         try:
             portas_disponiveis = [port.device for port in serial.tools.list_ports.comports()]
@@ -364,27 +406,12 @@ class FardriverApp(QMainWindow):
         if filepath:
             try:
                 dados_extraidos = HebParser.parse_file(filepath)
-
-                if dados_extraidos['line_curr'] > 1000 or dados_extraidos['pole_pairs'] == 0 or dados_extraidos['pole_pairs'] > 40:
-                    aviso = (
-                        f"⚠️ ESTRUTURA HEB DESCONHECIDA\n\n"
-                        f"Os dados extraídos não fazem sentido:\n"
-                        f"Corrente: {dados_extraidos['line_curr']} A | Polos: {dados_extraidos['pole_pairs']}\n\n"
-                        f"Para adaptarmos a aplicação à SUA versão Fardriver, copie o 'Hex Dump' abaixo e cole no chat:\n\n"
-                        f"{dados_extraidos['raw_dump']}"
-                    )
-                    QMessageBox.warning(self, "Raio-X Necessário", aviso)
-
                 self.sl_polos.setValue(dados_extraidos["pole_pairs"])
                 self.sl_linha.setValue(int(dados_extraidos["line_curr"]))
                 self.sl_fase.setValue(int(dados_extraidos["phase_curr"]))
-                
                 self.cb_throttle.setCurrentIndex(dados_extraidos["throttle_mode"])
                 self.cb_weaka.setCurrentIndex(dados_extraidos["weaka_level"])
-                
-                relatorio = "SUCESSO! Ficheiro lido.\nVerifique os campos à esquerda."
-                QMessageBox.information(self, "Leitura Concluída", relatorio)
-
+                QMessageBox.information(self, "Leitura Concluída", "SUCESSO! Ficheiro lido.\nVerifique os campos à esquerda.")
             except Exception as e:
                 QMessageBox.critical(self, "Erro Fatal", f"Ocorreu um erro ao processar o ficheiro:\n{str(e)}")
 
@@ -398,13 +425,10 @@ class FardriverApp(QMainWindow):
     def toggle_conexao(self):
         if not self.backend.conectado:
             porta_selecionada = self.cb_portas.currentText()
-            
             if "Nenhuma" in porta_selecionada or "Erro" in porta_selecionada:
                 QMessageBox.warning(self, "Aviso", "Ligue o cabo USB da controladora primeiro!")
                 return
-                
             sucesso, mensagem_erro = self.backend.conectar(porta_selecionada)
-            
             if sucesso:
                 self.lbl_status.setText("ONLINE")
                 self.lbl_status.setStyleSheet("background-color: rgba(0, 255, 0, 0.1); color: #00FF00; padding: 10px; font-weight: bold;")
@@ -413,7 +437,7 @@ class FardriverApp(QMainWindow):
                 self.btn_ligar.setText("Desligar")
                 self.timer.start(100)
             else:
-                QMessageBox.critical(self, "Falha na Comunicação USB", f"Não foi possível abrir a porta {porta_selecionada}.\n\n{mensagem_erro}")
+                QMessageBox.critical(self, "Falha na Comunicação USB", f"Não foi possível abrir a porta.\n\n{mensagem_erro}")
         else:
             self.backend.desconectar()
             self.lbl_status.setText("DESLIGADO")
@@ -423,7 +447,6 @@ class FardriverApp(QMainWindow):
             self.btn_ligar.setText("Ligar / Desligar")
             self.timer.stop()
             self.hall_widget.update_state(0,0,0)
-            
             self.hist_rpm.clear()
             self.hist_curr.clear()
             self.hist_volt.clear()
@@ -449,21 +472,10 @@ class FardriverApp(QMainWindow):
 
     def restaurar_fabrica(self):
         resposta = QMessageBox.question(self, "ALERTA CRÍTICO - RESTAURAR DE FÁBRICA", 
-            "⚠️ ATENÇÃO: Esta ação irá apagar todas as afinações atuais na controladora e restaurar "
-            "os parâmetros de fábrica originais (Safe Mode).\n\n"
-            "Tem a certeza absoluta que deseja prosseguir com o Factory Reset?",
-            QMessageBox.Yes | QMessageBox.No)
-
+            "⚠️ ATENÇÃO: Deseja prosseguir com o Factory Reset?", QMessageBox.Yes | QMessageBox.No)
         if resposta == QMessageBox.Yes:
             if self.backend.restaurar_fabrica():
-                self.sl_linha.setValue(80)
-                self.sl_fase.setValue(250)
-                self.sl_regen.setValue(30)
-                self.sl_polos.setValue(4)
-                self.cb_weaka.setCurrentIndex(0)
-                self.cb_throttle.setCurrentIndex(0)
-                self.cb_sensor_temp.setCurrentText("KTY84-130")
-                QMessageBox.information(self, "Restauro Concluído", "A controladora foi restaurada para as configurações de fábrica.")
+                QMessageBox.information(self, "Restauro Concluído", "Controladora restaurada.")
             else:
                 QMessageBox.warning(self, "Erro", "Ligue a conexão primeiro!")
 
@@ -483,13 +495,63 @@ class FardriverApp(QMainWindow):
 
         self.prev_telemetry = t.copy()
         
-        self.hist_rpm.append(t["rpm"])
-        self.hist_curr.append(t["curr"])
-        self.hist_volt.append(t["volt"])
-        self.l_rpm.setData(self.x_data, list(self.hist_rpm))
-        self.l_curr.setData(self.x_data, list(self.hist_curr))
-        self.l_volt.setData(self.x_data, list(self.hist_volt))
+        # --- 1. GUARDA TUDO NA MEMÓRIA FULL (Para o Relatório) ---
+        self.hist_rpm_full.append(t["rpm"])
+        self.hist_curr_full.append(t["curr"])
+        self.hist_volt_full.append(t["volt"])
+        self.hist_temp_motor_full.append(t["temp_motor"])
+        self.hist_temp_ctrl_full.append(t["temp_mosfet"])
+        
+        # --- 2. ATUALIZA A TELA (Apenas os últimos 100 pontos para não travar) ---
+        eixo_x_completo = list(range(len(self.hist_rpm_full)))
+        
+        self.l_rpm.setData(eixo_x_completo[-self.max_pts_tela:], self.hist_rpm_full[-self.max_pts_tela:])
+        self.l_curr.setData(eixo_x_completo[-self.max_pts_tela:], self.hist_curr_full[-self.max_pts_tela:])
+        self.l_volt.setData(eixo_x_completo[-self.max_pts_tela:], self.hist_volt_full[-self.max_pts_tela:])
 
+    # =========================================================================
+    # GERADOR DE RELATÓRIO HTML OFFLINE
+    # =========================================================================
+    # =========================================================================
+    # GERADOR DE RELATÓRIO HTML OFFLINE
+    # =========================================================================
+    def gerar_relatorio_html(self):
+        # --- TRAVA DE SEGURANÇA: Evita erro se não houver dados ---
+        if not self.hist_rpm_full:
+            QMessageBox.warning(self, "Sem Dados", "Não há dados para exportar! Ligue a controladora e aguarde a leitura do gráfico.")
+            return
+        # ----------------------------------------------------------
+
+        t = self.backend.ler_dados()
+        
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        
+        caminho_salvar, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Salvar Relatório de Teste", 
+            f"Relatorio_Leviata_{datetime.now().strftime('%Y%m%d_%H%M')}.html", 
+            "Arquivos Web (*.html)", 
+            options=options
+        )
+        
+        if not caminho_salvar:
+            return
+            
+        pasta_escolhida = os.path.dirname(caminho_salvar)
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        from report_generator import ReportGenerator
+        ReportGenerator.generate_html_report(
+            t, 
+            self.hist_rpm_full, 
+            self.hist_curr_full, 
+            self.hist_volt_full, 
+            list(range(len(self.hist_rpm_full))), 
+            pasta_escolhida,
+            self.hist_temp_motor_full,  
+            self.hist_temp_ctrl_full    
+        )
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = FardriverApp()

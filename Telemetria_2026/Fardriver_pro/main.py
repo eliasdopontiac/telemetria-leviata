@@ -13,7 +13,7 @@ def main():
     
     # Inicializa o motor do PyQt5
     app = QApplication(sys.argv)
-    
+     
     # Cria a janela principal
     janela = FardriverApp()
     janela.show()
