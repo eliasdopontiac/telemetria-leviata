@@ -100,21 +100,28 @@ Para garantir **leveza e velocidade na leitura de dados (10Hz)**:
 
 ## 📡 Estrutura do Protocolo Fardriver
 
-```text
-Header (0xAA) → Command/Address → Payload → CRC → Not-Checksum
-```
+- **Pacotes de telemetria (receção):**  
+  `0xAA | Header | Dados (12 bytes) | CRC16 (2 bytes)`
+- **Comandos legados (envio de keep‑alive, etc.):**  
+  `0xAA | CMD | ~CMD | Sub | Val1 | Val2 | Checksum | ~Checksum`
+- **Escrita moderna de parâmetros:**  
+  usa endereçamento direto com flags e CRC16 (implementado em `fardriver_serial.py`).
 
 ---
 
-# 🛠️ Funcionalidades
+## 🛠️ Funcionalidades
 
 - [x] Leitura ao vivo de **RPM, Corrente, Tensão e Potência**
 - [x] Monitoramento térmico (**Motor e MOSFET**)
-- [x] Gráficos com **janela deslizante** e memória de fundo para **1 hora de teste**
-- [x] Gerador de **Relatório HTML** *(Exportação em PDF)*
-- [x] Ajuste e envio de parâmetros (**Corrente, Polos, Throttle, WeakA**)
-- [x] Comandos de manutenção (**Auto-Learn e Factory Reset**)
+- [x] Gráficos com **janela deslizante de 10 s** e histórico completo em RAM para exportação
+- [x] Gerador de **Relatório HTML** (imprimível como PDF)
+- [x] **Coleta de dados de aceleração** (2048 amostras na flash)
+- [x] **Histórico de erros** da sessão
+- [x] Ajuste e envio de parâmetros (**Corrente, Polos, Throttle, WeakA, PID, tabelas de ratio**)
+- [x] Comandos de manutenção (**Auto‑Learn, Cancelar Learn, Factory Reset**)
 - [x] Leitura de arquivos de backup **`.HEB`**
+- [x] Exportação de dados para **CSV**
+- [x] Guardar e carregar **perfis de configuração** (JSON)
 
 ---
 

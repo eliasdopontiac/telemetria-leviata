@@ -13,6 +13,7 @@ from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
+    QDesktopWidget,
     QDoubleSpinBox,
     QFileDialog,
     QFrame,
@@ -273,7 +274,14 @@ class FardriverApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Fardriver Pro — Bancada de Testes · Leviatã UEA")
-        self.resize(1440, 860)
+
+        # --- Tamanho mínimo garantido, inicial adaptativo ---
+        self.setMinimumSize(1024, 600)
+
+        screen_geom = QDesktopWidget().availableGeometry()
+        target_w = min(1440, int(screen_geom.width() * 0.9))
+        target_h = min(860, int(screen_geom.height() * 0.9))
+        self.resize(target_w, target_h)
         self.setStyleSheet(STYLESHEET)
 
         self.backend = FardriverSerial()
@@ -301,26 +309,40 @@ class FardriverApp(QMainWindow):
     def _setup_ui(self):
         root = QWidget()
         self.setCentralWidget(root)
-        root_layout = QHBoxLayout(root)
+        root_layout = QVBoxLayout(root)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        root_layout.addWidget(self._build_sidebar())
+        # --- Splitter horizontal (sidebar | conteúdo) ---
+        self.main_splitter = QSplitter(Qt.Horizontal)
 
-        # Main area — tab widget
+        sidebar = self._build_sidebar()
         self.tab_widget = QTabWidget()
         self.tab_widget.addTab(self._build_dashboard_tab(), "📊 Dashboard")
         self.tab_widget.addTab(self._build_params_tab(), "⚙️ Parâmetros")
         self.tab_widget.addTab(self._build_data_collection_tab(), "📈 Coleta de Dados")
         self.tab_widget.addTab(self._build_error_log_tab(), "📋 Erros")
-        root_layout.addWidget(self.tab_widget)
+
+        self.main_splitter.addWidget(sidebar)
+        self.main_splitter.addWidget(self.tab_widget)
+
+        # Configuração do splitter
+        self.main_splitter.setStretchFactor(0, 0)  # sidebar não estica
+        self.main_splitter.setStretchFactor(1, 1)  # área do tab expande
+        self.main_splitter.setSizes(
+            [300, 1140]
+        )  # proporção inicial (igual ao original)
+        self.main_splitter.setHandleWidth(1)  # divisor fino
+
+        root_layout.addWidget(self.main_splitter)
 
     # ── Sidebar ───────────────────────────────────────────────────────
 
     def _build_sidebar(self):
         sidebar = QFrame()
         sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(300)
+        sidebar.setMinimumWidth(250)  # impede que fique demasiado estreita
+        sidebar.setMaximumWidth(450)  # opcional: evita que roube demasiado espaço
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -643,6 +665,10 @@ class FardriverApp(QMainWindow):
             p.getAxis("bottom").setStyle(showValues=False)
             charts.addWidget(p)
         layout.addLayout(charts)
+        # Largura mínima dos gráficos
+        self.p_volt.setMinimumWidth(200)
+        self.p_curr.setMinimumWidth(200)
+        self.p_rpm.setMinimumWidth(200)
 
         return tab
 
@@ -829,6 +855,11 @@ class FardriverApp(QMainWindow):
 
         scroll.setWidget(content)
         outer.addWidget(scroll)
+
+        # Largura mínima das colunas das tabelas de ratio
+        self.tbl_ratio.horizontalHeader().setMinimumSectionSize(80)
+        self.tbl_nratio.horizontalHeader().setMinimumSectionSize(80)
+
         return tab
 
     # ── Data collection tab ───────────────────────────────────────────
