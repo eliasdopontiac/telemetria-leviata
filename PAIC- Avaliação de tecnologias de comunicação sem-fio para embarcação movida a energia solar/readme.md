@@ -698,7 +698,7 @@ const char gprsPass[] = "claro";
 
 <div align="center">
 
-Desenvolvido com 💚 em Manaus, Amazônia.
+Desenvolvido com 💚 em Manaus, Amazônas.
 
 **Equipe Leviatã · UEA · FAPEAM**
 
