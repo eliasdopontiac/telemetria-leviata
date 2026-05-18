@@ -117,7 +117,7 @@ void disableGPS(void)
 }
 void sendGPS() {
     float lat, lon, speed;
-    
+
     if (modem.getGPS(&lat, &lon, &speed)) {
         Serial.println("ˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇGPSˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇ");
         Serial.println("O led azul indica recebimento do sinal");
@@ -125,7 +125,7 @@ void sendGPS() {
         Serial.print("longitude:"); Serial.println(lon);
         Serial.print("velocidade:"); Serial.println(speed);
         digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-        
+
     Serial.println("^^^^^^^^^^^^^^^^^^^^GPS^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
     }
 
@@ -201,7 +201,7 @@ boolean mqttConnect()
     }
     SerialMon.println(" CONECTADO LES GOOOO");
     return mqtt.connected();
-    
+
 }
 
 
@@ -209,7 +209,7 @@ void setup()
 {
     // Set console baud rate
     Serial.begin(115200);
-    Serial2.begin(19200, SERIAL_8N1, RX_MPPT, NULL); 
+    Serial2.begin(19200, SERIAL_8N1, RX_MPPT, NULL);
     delay(10);
 
     // Set LED OFF
@@ -226,8 +226,8 @@ void setup()
 
     delay(1000);
     SerialAT.begin(UART_BAUD, SERIAL_8N1, PIN_RX, PIN_TX);
-    
-    Wire.begin(OLED_SDA, OLED_SCK); 
+
+    Wire.begin(OLED_SDA, OLED_SCK);
 
 
  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
@@ -239,7 +239,7 @@ void setup()
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(30, 0);
-  
+
   display.println(F("Leviata"));
   display.println(F("Conectado à ESP32"));
   display.display(); // Mostra no display
@@ -267,7 +267,7 @@ void setup()
     //        ret = modem.setNetworkMode(2);
     //        delay(500);
     //    } while (ret != "OK");
-    ret = modem.setNetworkMode(48);
+    ret = modem.setNetworkMode(2);
     DBG("setNetworkMode:", ret);
 
 

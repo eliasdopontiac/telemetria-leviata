@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+import os
+
+backend_path = r"Telemetria_2026\estação base\backend.py"
+dashboard_path = r"Telemetria_2026\estação base\dashboard.py"
+
+# --- BACKEND ---
+with open(backend_path, "r", encoding="utf-8") as f:
+    b_codd = f.read()
+
+b_code = b_code.replace(
+    '"vel", "lat", "lon", "sats", "falha_ctrl", "pkt_seq", "sig_lora", "sig_lte"',
+    '"vel", "lat", "lon", "sats", "proa", "hdop", "v_sist", "falha_ctrl", "pkt_seq", "sig_lora", "sig_lte"'
+)
+
+b_code = b_code.replace(
+    'sig = data.get("sinal", {})',
+    'sig = data.get("sinal", {})\n            v_sist = float(data.get("v_sist", 0.0))'
+)
+
+b_code = b_code.replace(
+    'n.get("gps_satelites", 0),\n                p.get("fardriver_falha", 0),',
+    'n.get("gps_satelites", 0),\n                n.get("proa", 0),\n                n.get("hdop", 0),\n                v_sist,\n                p.get("fardriver_falha", 0),'
+)
+
+with open(backend_path, "w", encoding="utf-8") as f:
+    f.write(b_code)
+
+# --- DASHBOARD ---
+with open(dashboard_path, "r", encoding="utf-8") as f:
+    d_code = f.read()
+
+d_code = d_code.replace(
+    'txt_lon = ft.Text("—", size=13, weight="w500", color=config.MUTED)',
+    'txt_lon = ft.Text("—", size=13, weight="w500", color=config.MUTED)\n    txt_proa = ft.Text("PROA: —", size=13, weight="w500", color=config.MUTED)\n    txt_hdop = ft.Text("HDOP: —", size=13, weight="w500", color=config.MUTED)\n    txt_v_sist = ft.Text("SYS: — V", size=11, weight="bold", color=config.MUTED)'
+)
+
+d_code = d_code.replace(
+    'txt_sats.value = f"��️ {n.get(\'gps_satelites\', 0)} Satélites"',
+    'txt_sats.value = f"��️ {n.get(\'gps_satelites\', 0)} Satélites"\n                    proa = to_f(n.get("proa", 0))\n                    hdop = to_f(n.get("hdop", 0))\n                    v_sist = to_f(data.get("v_sist", 0))\n                    txt_proa.value = f"PROA: {proa:.0f}°\n\n                    txt_hdop.value = f"HDOP: {hdop:.1f}"\n                    txt_v_sist.value = f"SYS: {v_sist:.1f}V"\n                    txt_v_sist.color = config.SUCCESS if v_sist >= 3.7 else config.RED'
+)
+
+d_code = d_code.replace(
+    'ft.Row([txt_lat, txt_lon], spacing=20, alignment="center")',
+    'ft.Row([txt_lat, txt_lon, txt_proa, txt_hdop], spacing=15, alignment="center")'
+)
+
+d_code = d_code.replace(
+    'ft.Column([txt_pkt_loss, txt_raw_sig], spacing=2, alignment="center")',
+    'ft.Column([txt_pkt_loss, txt_raw_sig, txt_v_sist], spacing=2, alignment="center")'
+)
+
+with open(dashboard_path, "w", encoding="utf-8") as f:
+ f.write(d_code)
+
+print("Dashboard e Backend atualizados com sucesso!")

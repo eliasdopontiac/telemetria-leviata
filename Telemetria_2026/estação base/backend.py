@@ -6,16 +6,14 @@ import os
 
 from config import CSV_FILE
 
-
 class TelemetryBackend:
     def __init__(self, ui_callback):
         self.ui_callback = ui_callback
         self.lock = threading.Lock()
-        # Cabeçalho expandido para v2026
         self._header = [
             "ts", "fonte", "gps_hora", "v_solar", "i_solar", "pot_solar",
             "soc", "v_bat", "i_liq", "rpm", "i_motor", "t_motor", "t_ctrl",
-            "vel", "lat", "lon", "sats", "falha_ctrl", "pkt_seq", "sig_lora", "sig_lte"
+            "vel", "lat", "lon", "sats", "proa", "hdop", "v_sist", "falha_ctrl", "pkt_seq", "sig_lora", "sig_lte"
         ]
         self._init_csv()
 
@@ -44,14 +42,13 @@ class TelemetryBackend:
             data = json.loads(payload)
             ts = datetime.now().strftime("%H:%M:%S")
             
-            # Extração segura conforme nova estrutura sugerida
             s = data.get("solar", {})
             b = data.get("bateria", {})
             p = data.get("prop", {})
             n = data.get("nav", {})
             sig = data.get("sinal", {})
+            v_sist = float(data.get("v_sist", 0.0))
 
-            # Preparar linha para o CSV (mantendo ordem do self._header)
             row = [
                 ts,
                 source,
@@ -70,6 +67,9 @@ class TelemetryBackend:
                 n.get("lat", 0),
                 n.get("lon", 0),
                 n.get("gps_satelites", 0),
+                n.get("proa", 0),
+                n.get("hdop", 0),
+                v_sist,
                 p.get("fardriver_falha", 0),
                 sig.get("lora_pacotes", 0),
                 sig.get("lora", 0),

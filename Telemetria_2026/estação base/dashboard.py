@@ -71,8 +71,14 @@ async def create_dashboard(page: ft.Page):
     bars_lora = make_signal_bars(); bars_lte = make_signal_bars()
     txt_pkt_loss = ft.Text("Loss: 0%", size=11, color=config.MUTED, weight="bold")
     txt_raw_sig = ft.Text("RSSI: -- | CSQ: --", size=10, color=config.MUTED)
+    
+    # NOVOS WIDGETS
     txt_lat = ft.Text("—", size=13, weight="w500", color=config.MUTED)
     txt_lon = ft.Text("—", size=13, weight="w500", color=config.MUTED)
+    txt_proa = ft.Text("PROA: —", size=13, weight="w500", color=config.MUTED)
+    txt_hdop = ft.Text("HDOP: —", size=13, weight="w500", color=config.MUTED)
+    txt_v_sist = ft.Text("SYS: — V", size=11, weight="bold", color=config.MUTED)
+    
     txt_ts = ft.Text("Aguardando telemetria...", size=11, color=config.MUTED)
 
     # --- GRÁFICOS ---
@@ -165,7 +171,17 @@ async def create_dashboard(page: ft.Page):
                     tm = to_f(p.get("t_motor", p.get("temp_motor", 0))); tc = to_f(p.get("t_ctrl", p.get("temp_ctrl", 0)))
                     txt_gps_time.value = n.get("gps_hora", "--:--:--")
                     txt_vel_kmh.value = f"{vel:.1f}"; txt_vel_nos.value = f"{(vel * 0.539957):.1f} kt"
+                    
+                    proa = to_f(n.get("proa", 0))
+                    hdop = to_f(n.get("hdop", 0))
+                    v_sist = to_f(data.get("v_sist", 0))
+                    
                     txt_sats.value = f"🛰️ {n.get('gps_satelites', 0)} Satélites"
+                    txt_proa.value = f"PROA: {proa:.0f}°"
+                    txt_hdop.value = f"HDOP: {hdop:.1f}"
+                    txt_v_sist.value = f"SYS: {v_sist:.1f}V"
+                    txt_v_sist.color = config.SUCCESS if v_sist >= 3.7 else config.RED
+
                     lat, lon = to_f(n.get("lat", 0)), to_f(n.get("lon", 0))
                     if lat != 0 and lon != 0:
                         gs.lat, gs.lon = lat, lon; marker.coordinates = fm.MapLatitudeLongitude(lat, lon)
@@ -242,10 +258,10 @@ async def create_dashboard(page: ft.Page):
             ], spacing=10),
 
             # TIER 4: DIAGNÓSTICO
-            make_card(height=110, content=ft.Column([section_label("Diagnóstico de Rede", ft.Icons.WIFI_TETHERING_ROUNDED), ft.Row([ft.Column([ft.Text("LTE", size=10, color=config.MUTED), ft.Row(bars_lte, spacing=2)], spacing=5), ft.VerticalDivider(width=20), ft.Column([ft.Text("LORA", size=10, color=config.MUTED), ft.Row(bars_lora, spacing=2)], spacing=5), ft.VerticalDivider(width=20), ft.Column([txt_pkt_loss, txt_raw_sig], spacing=2, alignment="center")], alignment="start")], alignment="center")),
+            make_card(height=110, content=ft.Column([section_label("Diagnóstico de Rede", ft.Icons.WIFI_TETHERING_ROUNDED), ft.Row([ft.Column([ft.Text("LTE", size=10, color=config.MUTED), ft.Row(bars_lte, spacing=2)], spacing=5), ft.VerticalDivider(width=20), ft.Column([ft.Text("LORA", size=10, color=config.MUTED), ft.Row(bars_lora, spacing=2)], spacing=5), ft.VerticalDivider(width=20), ft.Column([txt_pkt_loss, txt_raw_sig, txt_v_sist], spacing=2, alignment="center")], alignment="start")], alignment="center")),
         ], col={"md": 7}, spacing=10),
         
-        ft.Column([make_card(height=605, content=ft.Column([ft.Row([section_label("Navegação Espacial", ft.Icons.MAP_ROUNDED), ft.Row([ft.Text("AUTO-CENTRO", size=9, color=config.MUTED, weight="bold"), ft.Switch(value=True, on_change=lambda e: setattr(gs, "auto_center", e.control.value))], spacing=5)], alignment="spaceBetween"), ft.Container(map_control, border_radius=10, clip_behavior="hardEdge", expand=True, bgcolor="#1a1a1a"), ft.Row([txt_lat, txt_lon], spacing=20, alignment="center")], spacing=10))], col={"md": 5}, spacing=10),
+        ft.Column([make_card(height=605, content=ft.Column([ft.Row([section_label("Navegação Espacial", ft.Icons.MAP_ROUNDED), ft.Row([ft.Text("AUTO-CENTRO", size=9, color=config.MUTED, weight="bold"), ft.Switch(value=True, on_change=lambda e: setattr(gs, "auto_center", e.control.value))], spacing=5)], alignment="spaceBetween"), ft.Container(map_control, border_radius=10, clip_behavior="hardEdge", expand=True, bgcolor="#1a1a1a"), ft.Row([txt_lat, txt_lon, txt_proa, txt_hdop], spacing=15, alignment="center")], spacing=10))], col={"md": 5}, spacing=10),
     ], spacing=10)
 
     tab_analise = ft.Column([ft.Row([make_card(content=chart_v, expand=True, height=400), make_card(content=chart_p, expand=True, height=400)], spacing=10), ft.Row([make_card(content=chart_m, expand=True, height=400), make_card(content=chart_b, expand=True, height=400)], spacing=10)], spacing=10, scroll="adaptive")
