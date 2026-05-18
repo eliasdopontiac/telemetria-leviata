@@ -77,6 +77,7 @@ async def create_dashboard(page: ft.Page):
     txt_lon = ft.Text("—", size=13, weight="w500", color=config.MUTED)
     txt_proa = ft.Text("PROA: —", size=13, weight="w500", color=config.MUTED)
     txt_hdop = ft.Text("HDOP: —", size=13, weight="w500", color=config.MUTED)
+    txt_gps_status = ft.Text("GPS: AGUARDANDO", size=11, weight="bold", color=config.MUTED)
     txt_v_sist = ft.Text("SYS: — V", size=11, weight="bold", color=config.MUTED)
     
     txt_ts = ft.Text("Aguardando telemetria...", size=11, color=config.MUTED)
@@ -161,6 +162,7 @@ async def create_dashboard(page: ft.Page):
                 if last_data["data"]:
                     data = last_data["data"]; source = last_data["source"]
                     n = data.get("nav", {}); s = data.get("solar", {}); b = data.get("bateria", {}); p = data.get("prop", {}); sig = data.get("sinal", {})
+                    n_int = data.get("nav_int", {})
                     def to_f(v, default=0.0):
                         try: return float(v) if v is not None else default
                         except: return default
@@ -182,14 +184,35 @@ async def create_dashboard(page: ft.Page):
                     txt_v_sist.value = f"SYS: {v_sist:.1f}V"
                     txt_v_sist.color = config.SUCCESS if v_sist >= 3.7 else config.RED
 
+                    
                     lat, lon = to_f(n.get("lat", 0)), to_f(n.get("lon", 0))
-                    if lat != 0 and lon != 0:
-                        gs.lat, gs.lon = lat, lon; marker.coordinates = fm.MapLatitudeLongitude(lat, lon)
+                    lat_i, lon_i = to_f(n_int.get("lat", 0)), to_f(n_int.get("lon", 0))
+                    gps_ativo_lat, gps_ativo_lon = lat, lon
+                    if lat == 0 and lat_i != 0:
+                        gps_ativo_lat, gps_ativo_lon = lat_i, lon_i
+                        txt_gps_status.value = "GPS: BACKUP LILYGO ATIVO"
+                        txt_gps_status.color = config.AMBER
+                    elif lat != 0 and lat_i != 0:
+                        diff = abs(lat - lat_i) + abs(lon - lon_i)
+                        if diff > 0.002:
+                            txt_gps_status.value = "GPS: ALERTA DE DISCREPANCIA"
+                            txt_gps_status.color = config.RED
+                        else:
+                            txt_gps_status.value = "GPS: SINCRONIZADOS"
+                            txt_gps_status.color = config.SUCCESS
+                    else:
+                        txt_gps_status.value = "GPS: SEM SINAL"
+                        txt_gps_status.color = config.MUTED
+                    if gps_ativo_lat != 0 and gps_ativo_lon != 0:
+                        gs.lat, gs.lon = gps_ativo_lat, gps_ativo_lon
+                        marker.coordinates = fm.MapLatitudeLongitude(gps_ativo_lat, gps_ativo_lon)
                         if gs.auto_center:
-                            map_control.center = fm.MapLatitudeLongitude(lat, lon)
+                            map_control.center = fm.MapLatitudeLongitude(gps_ativo_lat, gps_ativo_lon)
                             try: map_control.update()
                             except: pass
-                        txt_lat.value = f"LAT: {lat:.6f}"; txt_lon.value = f"LON: {lon:.6f}"
+                        txt_lat.value = f"LAT: {gps_ativo_lat:.6f}"
+                        txt_lon.value = f"LON: {gps_ativo_lon:.6f}"
+
                     txt_pot.value = str(round(pot)); txt_v_panel.value = f"{to_f(s.get('tensao', 0)):.1f}"; txt_i_panel.value = f"{to_f(s.get('corrente', 0)):.1f}"
                     txt_soc.value = f"{round(soc)}"; bar_soc.value = max(0.0, min(1.0, soc / 100))
                     bar_soc.color = config.GREEN if soc > 40 else (config.YELLOW if soc > 20 else config.RED)
@@ -261,7 +284,7 @@ async def create_dashboard(page: ft.Page):
             make_card(height=110, content=ft.Column([section_label("Diagnóstico de Rede", ft.Icons.WIFI_TETHERING_ROUNDED), ft.Row([ft.Column([ft.Text("LTE", size=10, color=config.MUTED), ft.Row(bars_lte, spacing=2)], spacing=5), ft.VerticalDivider(width=20), ft.Column([ft.Text("LORA", size=10, color=config.MUTED), ft.Row(bars_lora, spacing=2)], spacing=5), ft.VerticalDivider(width=20), ft.Column([txt_pkt_loss, txt_raw_sig, txt_v_sist], spacing=2, alignment="center")], alignment="start")], alignment="center")),
         ], col={"md": 7}, spacing=10),
         
-        ft.Column([make_card(height=605, content=ft.Column([ft.Row([section_label("Navegação Espacial", ft.Icons.MAP_ROUNDED), ft.Row([ft.Text("AUTO-CENTRO", size=9, color=config.MUTED, weight="bold"), ft.Switch(value=True, on_change=lambda e: setattr(gs, "auto_center", e.control.value))], spacing=5)], alignment="spaceBetween"), ft.Container(map_control, border_radius=10, clip_behavior="hardEdge", expand=True, bgcolor="#1a1a1a"), ft.Row([txt_lat, txt_lon, txt_proa, txt_hdop], spacing=15, alignment="center")], spacing=10))], col={"md": 5}, spacing=10),
+        ft.Column([make_card(height=605, content=ft.Column([ft.Row([section_label("Navegação Espacial", ft.Icons.MAP_ROUNDED), ft.Row([ft.Text("AUTO-CENTRO", size=9, color=config.MUTED, weight="bold"), ft.Switch(value=True, on_change=lambda e: setattr(gs, "auto_center", e.control.value))], spacing=5)], alignment="spaceBetween"), ft.Container(map_control, border_radius=10, clip_behavior="hardEdge", expand=True, bgcolor="#1a1a1a"), ft.Column([ft.Row([txt_lat, txt_lon, txt_proa, txt_hdop], spacing=15, alignment="center"), txt_gps_status], horizontal_alignment="center")], spacing=10))], col={"md": 5}, spacing=10),
     ], spacing=10)
 
     tab_analise = ft.Column([ft.Row([make_card(content=chart_v, expand=True, height=400), make_card(content=chart_p, expand=True, height=400)], spacing=10), ft.Row([make_card(content=chart_m, expand=True, height=400), make_card(content=chart_b, expand=True, height=400)], spacing=10)], spacing=10, scroll="adaptive")

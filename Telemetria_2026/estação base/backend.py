@@ -13,7 +13,7 @@ class TelemetryBackend:
         self._header = [
             "ts", "fonte", "gps_hora", "v_solar", "i_solar", "pot_solar",
             "soc", "v_bat", "i_liq", "rpm", "i_motor", "t_motor", "t_ctrl",
-            "vel", "lat", "lon", "sats", "proa", "hdop", "v_sist", "falha_ctrl", "pkt_seq", "sig_lora", "sig_lte"
+            "vel", "lat", "lon", "sats", "proa", "hdop", "lat_int", "lon_int", "v_sist", "falha_ctrl", "pkt_seq", "sig_lora", "sig_lte"
         ]
         self._init_csv()
 
@@ -46,6 +46,7 @@ class TelemetryBackend:
             b = data.get("bateria", {})
             p = data.get("prop", {})
             n = data.get("nav", {})
+            n_int = data.get("nav_int", {})
             sig = data.get("sinal", {})
             v_sist = float(data.get("v_sist", 0.0))
 
@@ -69,6 +70,8 @@ class TelemetryBackend:
                 n.get("gps_satelites", 0),
                 n.get("proa", 0),
                 n.get("hdop", 0),
+                n_int.get("lat", 0),
+                n_int.get("lon", 0),
                 v_sist,
                 p.get("fardriver_falha", 0),
                 sig.get("lora_pacotes", 0),

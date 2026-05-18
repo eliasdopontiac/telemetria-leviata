@@ -1,6 +1,6 @@
 ﻿/*
  * Telemetria Leviatã 2026 - Gateway LTE (LilyGO T-SIM7000G)
- * MODO COMPETIÇÃO - + Proa e HDOP
+ * MODO COMPETIÇÃO - Dual GPS (NEO-6M via ESP-NOW + SIM7000G Interno)
  */
 
 #define TINY_GSM_MODEM_SIM7000
@@ -37,7 +37,6 @@ const char* broker    = "test.mosquitto.org";
 const int mqtt_port   = 1883;
 const char* topic     = "leviata/telemetria/race";
 
-// ESTRUTURA ATUALIZADA (+ Proa e HDOP)
 typedef struct __attribute__((packed)) struct_telemetry {
     uint8_t sync_byte; 
     int16_t motor_rpm;
@@ -56,14 +55,19 @@ typedef struct __attribute__((packed)) struct_telemetry {
     uint8_t gps_h;
     uint8_t gps_m;
     uint8_t gps_s;
-    float gps_course; // NOVO: Proa
-    float gps_hdop;   // NOVO: Precisão GPS
+    float gps_course;
+    float gps_hdop;
 } struct_telemetry;
 
 struct_telemetry incomingData;
 bool newData = false;
 float v_sistema = 0;
 int signalQuality = 0;
+
+// Variáveis do GPS Interno da LilyGO
+float lat_int = 0;
+float lon_int = 0;
+float speed_int = 0;
 
 #define SerialAT Serial1
 TinyGsm        modem(SerialAT);
@@ -96,6 +100,9 @@ void setupModem() {
     modem.waitForNetwork(180000L, true);
     modem.gprsConnect(apn, gprsUser, gprsPass);
     mqtt.setServer(broker, mqtt_port);
+    
+    // Liga o GPS interno do SIM7000G
+    modem.enableGPS();
 }
 
 boolean mqttConnect() { return mqtt.connect("Leviata_Gateway_LTE"); }
@@ -130,11 +137,14 @@ void loop() {
         newData = false;
         v_sistema = readSystemVoltage();
         signalQuality = modem.getSignalQuality();
+        
+        // Coleta o GPS interno como contingência
+        modem.getGPS(&lat_int, &lon_int, &speed_int);
 
         char timeBuf[9];
         sprintf(timeBuf, "%02d:%02d:%02d", incomingData.gps_h, incomingData.gps_m, incomingData.gps_s);
 
-        StaticJsonDocument<1024> doc;
+        StaticJsonDocument<1536> doc;
         
         JsonObject solar = doc.createNestedObject("solar");
         solar["tensao"] = incomingData.solar_v_v;
@@ -153,15 +163,21 @@ void loop() {
         prop["t_ctrl"] = incomingData.ctrl_temp_c;
         prop["fardriver_falha"] = incomingData.far_falha;
 
+        // GPS Principal (NEO-6M vindo da Heltec)
         JsonObject nav = doc.createNestedObject("nav");
         nav["vel"] = incomingData.vel_kmh;
         nav["lat"] = incomingData.lat;
         nav["lon"] = incomingData.lng;
         nav["gps_satelites"] = incomingData.sats;
         nav["gps_hora"] = timeBuf;
-        // --- INJETANDO DADOS NOVOS ---
         nav["proa"] = incomingData.gps_course;
         nav["hdop"] = incomingData.gps_hdop;
+        
+        // GPS Backup (SIM7000G Interno)
+        JsonObject nav_int = doc.createNestedObject("nav_int");
+        nav_int["vel"] = speed_int;
+        nav_int["lat"] = lat_int;
+        nav_int["lon"] = lon_int;
 
         JsonObject sinal = doc.createNestedObject("sinal");
         sinal["lora_pacotes"] = 0;
@@ -170,7 +186,7 @@ void loop() {
 
         doc["v_sist"] = serialized(String(v_sistema, 2));
 
-        char buffer[1024];
+        char buffer[1536];
         serializeJson(doc, buffer);
         
         if (mqtt.publish(topic, buffer)) {
