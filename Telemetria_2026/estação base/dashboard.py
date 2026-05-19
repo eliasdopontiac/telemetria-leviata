@@ -26,7 +26,6 @@ from ui_components import (
     make_status_led,
 )
 
-
 async def create_dashboard(page: ft.Page):
     # --- ESTADO GLOBAL ---
     vel_history = deque([0.0]*200, maxlen=200)
@@ -72,7 +71,6 @@ async def create_dashboard(page: ft.Page):
     txt_pkt_loss = ft.Text("Loss: 0%", size=11, color=config.MUTED, weight="bold")
     txt_raw_sig = ft.Text("RSSI: -- | CSQ: --", size=10, color=config.MUTED)
     
-    # NOVOS WIDGETS
     txt_lat = ft.Text("—", size=13, weight="w500", color=config.MUTED)
     txt_lon = ft.Text("—", size=13, weight="w500", color=config.MUTED)
     txt_proa = ft.Text("PROA: —", size=13, weight="w500", color=config.MUTED)
@@ -163,9 +161,11 @@ async def create_dashboard(page: ft.Page):
                     data = last_data["data"]; source = last_data["source"]
                     n = data.get("nav", {}); s = data.get("solar", {}); b = data.get("bateria", {}); p = data.get("prop", {}); sig = data.get("sinal", {})
                     n_int = data.get("nav_int", {})
+                    
                     def to_f(v, default=0.0):
                         try: return float(v) if v is not None else default
                         except: return default
+                    
                     vel = to_f(n.get("vel", n.get("velocidade", 0)))
                     pot = to_f(s.get("pot", s.get("potencia", 0)))
                     soc = to_f(b.get("soc", 0)); i_motor = to_f(p.get("i_motor", p.get("corrente", 0)))
@@ -173,21 +173,22 @@ async def create_dashboard(page: ft.Page):
                     tm = to_f(p.get("t_motor", p.get("temp_motor", 0))); tc = to_f(p.get("t_ctrl", p.get("temp_ctrl", 0)))
                     txt_gps_time.value = n.get("gps_hora", "--:--:--")
                     txt_vel_kmh.value = f"{vel:.1f}"; txt_vel_nos.value = f"{(vel * 0.539957):.1f} kt"
+                    txt_sats.value = f"🛰️ {n.get('gps_satelites', 0)} Satélites"
                     
                     proa = to_f(n.get("proa", 0))
                     hdop = to_f(n.get("hdop", 0))
                     v_sist = to_f(data.get("v_sist", 0))
                     
-                    txt_sats.value = f"🛰️ {n.get('gps_satelites', 0)} Satélites"
                     txt_proa.value = f"PROA: {proa:.0f}°"
                     txt_hdop.value = f"HDOP: {hdop:.1f}"
                     txt_v_sist.value = f"SYS: {v_sist:.1f}V"
                     txt_v_sist.color = config.SUCCESS if v_sist >= 3.7 else config.RED
 
-                    
                     lat, lon = to_f(n.get("lat", 0)), to_f(n.get("lon", 0))
                     lat_i, lon_i = to_f(n_int.get("lat", 0)), to_f(n_int.get("lon", 0))
+                    
                     gps_ativo_lat, gps_ativo_lon = lat, lon
+                    
                     if lat == 0 and lat_i != 0:
                         gps_ativo_lat, gps_ativo_lon = lat_i, lon_i
                         txt_gps_status.value = "GPS: BACKUP LILYGO ATIVO"
@@ -203,6 +204,7 @@ async def create_dashboard(page: ft.Page):
                     else:
                         txt_gps_status.value = "GPS: SEM SINAL"
                         txt_gps_status.color = config.MUTED
+
                     if gps_ativo_lat != 0 and gps_ativo_lon != 0:
                         gs.lat, gs.lon = gps_ativo_lat, gps_ativo_lon
                         marker.coordinates = fm.MapLatitudeLongitude(gps_ativo_lat, gps_ativo_lon)
@@ -212,7 +214,7 @@ async def create_dashboard(page: ft.Page):
                             except: pass
                         txt_lat.value = f"LAT: {gps_ativo_lat:.6f}"
                         txt_lon.value = f"LON: {gps_ativo_lon:.6f}"
-
+                        
                     txt_pot.value = str(round(pot)); txt_v_panel.value = f"{to_f(s.get('tensao', 0)):.1f}"; txt_i_panel.value = f"{to_f(s.get('corrente', 0)):.1f}"
                     txt_soc.value = f"{round(soc)}"; bar_soc.value = max(0.0, min(1.0, soc / 100))
                     bar_soc.color = config.GREEN if soc > 40 else (config.YELLOW if soc > 20 else config.RED)
@@ -235,20 +237,34 @@ async def create_dashboard(page: ft.Page):
                     is_fault = p.get("fardriver_falha", 0)
                     if is_fault:
                         fault_led.bgcolor = config.RED if fault_blink else config.BG_COLOR
-                        fault_row.controls[1].value = "FALHA CRÍTICA"; fault_row.controls[1].color = config.RED
+                        fault_row.controls[1].value = f"FALHA: COD {is_fault}"; fault_row.controls[1].color = config.RED
                     else:
                         fault_led.bgcolor = config.GREEN; fault_row.controls[1].value = "SISTEMA OK"; fault_row.controls[1].color = config.MUTED
                     fault_blink = not fault_blink
+                    
                     vel_history.append(vel); pot_history.append(pot); curr_motor_history.append(i_motor); curr_bat_history.append(abs(i_liq))
                     chart_vel_series.points = [fch.LineChartDataPoint(i, v) for i, v in enumerate(vel_history)]
                     chart_pot_series.points = [fch.LineChartDataPoint(i, v) for i, v in enumerate(pot_history)]
                     chart_cm_series.points = [fch.LineChartDataPoint(i, v) for i, v in enumerate(curr_motor_history)]
                     chart_cb_series.points = [fch.LineChartDataPoint(i, v) for i, v in enumerate(curr_bat_history)]
-                    csq = to_f(sig.get("lte", 0)); lte_quality = min(100, max(0, int((csq / 31.0) * 100)))
-                    rssi = to_f(sig.get("lora", 0)); lora_quality = min(100, max(0, int(((rssi + 120) / 90.0) * 100)))
-                    txt_lte_perc.value = f"{lte_quality}%"; txt_lora_perc.value = f"{lora_quality}%"
-                    update_signal_bars(bars_lora, lora_quality); update_signal_bars(bars_lte, lte_quality)
                     
+                    # Atualizando os textos com os sinais corretos individualmente!
+                    if source == "LTE":
+                        csq = to_f(sig.get("lte", 0)); lte_quality = min(100, max(0, int((csq / 31.0) * 100)))
+                        txt_lte_perc.value = f"{lte_quality}%"
+                        update_signal_bars(bars_lte, lte_quality)
+                        # Preserva o lora e atualiza o lte
+                        part_rssi = txt_raw_sig.value.split(" | ")[0] if " | " in txt_raw_sig.value else "RSSI: --"
+                        txt_raw_sig.value = f"{part_rssi} | CSQ: {int(csq)}"
+                    
+                    if source == "LoRa":
+                        rssi = to_f(sig.get("lora", 0)); lora_quality = min(100, max(0, int(((rssi + 120) / 90.0) * 100)))
+                        txt_lora_perc.value = f"{lora_quality}%"
+                        update_signal_bars(bars_lora, lora_quality)
+                        # Preserva o lte e atualiza o lora
+                        part_csq = txt_raw_sig.value.split(" | ")[1] if " | " in txt_raw_sig.value else "CSQ: --"
+                        txt_raw_sig.value = f"RSSI: {int(rssi)} dBm | {part_csq}"
+                        
                     async def blink_led(led):
                         led.bgcolor = config.SUCCESS; page.update(); await asyncio.sleep(0.3); led.bgcolor = config.RED; page.update()
                     active_led = dot_lte if source == "LTE" else dot_lora
@@ -311,9 +327,27 @@ async def create_dashboard(page: ft.Page):
             port_dropdown.disabled = False; dot_lora.bgcolor = config.RED
         page.update()
 
+    txt_mqtt_status = ft.Text("DESCONECTADO", size=10, weight="bold", color=config.RED)
+    async def toggle_mqtt(e):
+        nonlocal mqtt_active
+        if not mqtt_active:
+            mqtt_active = True; stop_mqtt.clear()
+            btn_mqtt.text = "STOP MQTT"; btn_mqtt.bgcolor = ft.Colors.with_opacity(0.2, config.RED)
+            txt_mqtt_status.value = "CONECTANDO..."; txt_mqtt_status.color = config.YELLOW; page.update()
+            asyncio.create_task(mqtt_worker())
+        else:
+            mqtt_active = False; stop_mqtt.set()
+            if mqtt_client_ref[0]:
+                try: mqtt_client_ref[0].disconnect(); mqtt_client_ref[0].loop_stop()
+                except: pass
+            btn_mqtt.text = "START MQTT"; btn_mqtt.bgcolor = ft.Colors.with_opacity(0.1, config.PRIMARY)
+            txt_mqtt_status.value = "DESCONECTADO"; txt_mqtt_status.color = config.RED
+            dot_lte.bgcolor = config.RED; page.update()
+        page.update()
+
+    btn_mqtt = ft.ElevatedButton("START MQTT", icon=ft.Icons.CLOUD_SYNC_ROUNDED, color=config.FG, bgcolor=ft.Colors.with_opacity(0.1, config.PRIMARY), on_click=toggle_mqtt)
     serial_row, port_dropdown, btn_connect = make_serial_control(toggle_serial, refresh_ports)
     btn_connect.text = "START LORA"
-    content_area = ft.Container(content=tab_telemetria, expand=True, padding=10)
 
     def switch_tab(e):
         if e.control.data == "tele":
@@ -327,6 +361,7 @@ async def create_dashboard(page: ft.Page):
     btn_tele = ft.TextButton(content=ft.Row([ft.Icon(ft.Icons.DASHBOARD_ROUNDED, size=18), ft.Text("TELEMETRIA", weight="bold")], spacing=10), data="tele", on_click=switch_tab, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), bgcolor=config.PRIMARY_MUTED, color=config.PRIMARY))
     btn_anal = ft.TextButton(content=ft.Row([ft.Icon(ft.Icons.INSERT_CHART_ROUNDED, size=18), ft.Text("ANÁLISE", weight="bold")], spacing=10), data="anal", on_click=switch_tab, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), bgcolor="transparent", color=config.MUTED))
     nav_bar = ft.Container(content=ft.Row([btn_tele, btn_anal], spacing=10), padding=5, bgcolor=ft.Colors.with_opacity(0.05, config.FG), border_radius=10, border=ft.Border.all(1, config.BORDER_COLOR))
+    content_area = ft.Container(content=tab_telemetria, expand=True, padding=10)
 
     header = ft.Row([
         ft.Column([ft.Row([ft.Icon(ft.Icons.DIRECTIONS_BOAT_ROUNDED, color=config.PRIMARY, size=32), ft.Text("LEVIATÃ v2026", size=24, weight="bold", color=config.FG)]),
@@ -354,10 +389,12 @@ async def create_dashboard(page: ft.Page):
                 while not stop_serial.is_set():
                     if ser.in_waiting:
                         line = ser.readline().decode("utf-8", errors="ignore").strip()
-                        if line: backend.process(line, "LoRa")
+                        if line: 
+                            print(f"[SERIAL RX] Pacote recebido: {line[:50]}...")
+                            backend.process(line, "LoRa")
                     else: time.sleep(0.005)
                 ser.close()
-            except: pass
+            except Exception as e: print(f"Erro porta Serial: {e}")
         await asyncio.to_thread(run_serial)
 
     async def mqtt_worker():
@@ -367,7 +404,9 @@ async def create_dashboard(page: ft.Page):
                 client.subscribe(config.MQTT_TOPIC)
             else:
                 txt_mqtt_status.value = f"ERRO {rc}"; txt_mqtt_status.color = config.RED; page.update()
-        def on_message(client, userdata, message): backend.process(message.payload, "LTE")
+        def on_message(client, userdata, message):
+            print(f"[MQTT RX] Pacote recebido: {len(message.payload)} bytes")
+            backend.process(message.payload, "LTE")
         def run_mqtt():
             try:
                 client = mqtt.Client(); client.on_connect = on_connect; client.on_message = on_message

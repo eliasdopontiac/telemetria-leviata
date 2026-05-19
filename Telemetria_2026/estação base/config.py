@@ -1,16 +1,16 @@
 ﻿import flet as ft
 
 SERIAL_PORT = "COM3"
-BAUD_RATE = 9600
+BAUD_RATE = 115200
 MQTT_BROKER = "broker.hivemq.com"
-MQTT_TOPIC = "barco/telemetria/+"
+MQTT_TOPIC = "leviata/telemetria/race"
 CSV_FILE = "telemetria_solar.csv"
 MAX_VEL_HISTORY = 200
 POT_MAX = 600
 
 # Dados do Barco para Autonomia
 BAT_CAPACITY_AH = 40.0  # Capacidade total em Ah
-BAT_VOLTAGE_NOMINAL = 48.0 # Tensão nominal do sistema
+BAT_VOLTAGE_NOMINAL = 48.0  # Tensão nominal do sistema
 
 # Paleta de Cores Premium
 BG_COLOR = "#09090b"
@@ -28,5 +28,3 @@ RED = "#ef4444"
 YELLOW = "#eab308"
 BLUE = "#3b82f6"
 SUCCESS = "#10b981"
-
-

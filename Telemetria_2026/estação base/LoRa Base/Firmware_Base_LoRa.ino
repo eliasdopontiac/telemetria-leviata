@@ -1,27 +1,24 @@
-﻿/*
- * Telemetria Leviatã 2026 - Estação Base LoRa (Receptor)
+﻿
+/*
+ * Telemetria Leviata 2026 - Estacao Base LoRa (Receptor)
+ * Hardware: TTGO/Heltec V2 (ESP32 Classico + LoRa SX1276 + OLED 0.96)
  */
 
 #include <SPI.h>
 #include <LoRa.h>
 #include <ArduinoJson.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <Wire.h>
 
-#define LORA_SCK     9
-#define LORA_MISO    11
-#define LORA_MOSI    10
-#define LORA_SS      8
-#define LORA_RST     12
-#define LORA_DIO1    14
 
-#define OLED_SDA     17
-#define OLED_SCL     18
-#define OLED_RST     21
-#define VEXT_PIN     36
+// --- PINOS LoRa SX1276 (Padrao TTGO/Heltec V2) ---
+#define SCK     5
+#define MISO    19
+#define MOSI    27
+#define SS      18
+#define RST     14
+#define DIO0    26
 
-// ESTRUTURA ATUALIZADA (+ Proa e HDOP)
+
+
 typedef struct __attribute__((packed)) struct_telemetry {
     uint8_t sync_byte;
     int16_t motor_rpm;
@@ -40,43 +37,34 @@ typedef struct __attribute__((packed)) struct_telemetry {
     uint8_t gps_h;
     uint8_t gps_m;
     uint8_t gps_s;
-    float gps_course; // NOVO: Proa
-    float gps_hdop;   // NOVO: Precisão GPS
+    float gps_course;
+    float gps_hdop;
 } struct_telemetry;
 
 struct_telemetry receivedData;
-
-Adafruit_SSD1306 display(128, 64, &Wire, OLED_RST);
-
 int packetsReceived = 0;
-int lastRssi = 0;
-float lastSnr = 0;
 
 void setup() {
     Serial.begin(115200);
+    delay(1000);
 
-    pinMode(VEXT_PIN, OUTPUT); digitalWrite(VEXT_PIN, LOW); delay(100);
 
-    Wire.begin(OLED_SDA, OLED_SCL);
-    if (display.begin(SSD1306_SWITCHCAPVCC, 0x3c)) {
-        display.clearDisplay(); display.setTextColor(WHITE); display.setTextSize(1);
-        display.setCursor(0, 20); display.println("Iniciando BASE LORA..."); display.display();
-    }
 
-    SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_SS);
-    LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO1);
+    // Inicializa LoRa
+    SPI.begin(SCK, MISO, MOSI, SS);
+    LoRa.setPins(SS, RST, DIO0);
 
     if (!LoRa.begin(915E6)) {
-        display.clearDisplay(); display.setCursor(0, 0);
-        display.println("Falha LoRa!"); display.display();
+        Serial.println("{\"erro_local\":\"Falha ao iniciar LoRa! Verifique os pinos.\"}");
+
         while (1);
     }
 
+    // Configuracao de competicao (SF10 / 125kHz)
     LoRa.setSpreadingFactor(10);
     LoRa.setSignalBandwidth(125E3);
 
-    display.clearDisplay(); display.setCursor(0, 0);
-    display.println("BASE LORA PRONTA"); display.display();
+
 }
 
 void loop() {
@@ -85,11 +73,11 @@ void loop() {
     if (packetSize) {
         if (packetSize == sizeof(receivedData)) {
             LoRa.readBytes((uint8_t *)&receivedData, sizeof(receivedData));
+            Serial.println("lora recebido");
 
             if (receivedData.sync_byte == 0xAA) {
                 packetsReceived++;
-                lastRssi = LoRa.packetRssi();
-                lastSnr = LoRa.packetSnr();
+                int lastRssi = LoRa.packetRssi();
 
                 char timeBuf[9];
                 sprintf(timeBuf, "%02d:%02d:%02d", receivedData.gps_h, receivedData.gps_m, receivedData.gps_s);
@@ -119,7 +107,6 @@ void loop() {
                 nav["lon"] = receivedData.lng;
                 nav["gps_satelites"] = receivedData.sats;
                 nav["gps_hora"] = timeBuf;
-                // --- INJETANDO DADOS NOVOS ---
                 nav["proa"] = receivedData.gps_course;
                 nav["hdop"] = receivedData.gps_hdop;
 
@@ -131,22 +118,8 @@ void loop() {
                 serializeJson(doc, Serial);
                 Serial.println();
 
-                display.clearDisplay(); display.setCursor(0,0);
-                display.setTextSize(1); display.println("  ESTACAO BASE LORA");
-                display.drawLine(0, 10, 128, 10, WHITE);
 
-                display.setCursor(0, 15);
-                display.printf("RX: %d Pkts\n", packetsReceived);
-                display.printf("RSSI: %d | SNR: %0.1f\n", lastRssi, lastSnr);
-                display.printf("Vel: %0.1f kmh\n", receivedData.vel_kmh);
-                display.printf("Mot: %d RPM | %0.1fA\n", receivedData.motor_rpm, receivedData.motor_corrente_a);
-                display.printf("Sol: %0.0f W \n", receivedData.solar_p_w);
-                display.display();
-            } else {
-                Serial.println("{\"erro_local\":\"Pacote corrompido (Sync Byte invalido)\"}");
             }
-        } else {
-            Serial.printf("{\"erro_local\":\"Tamanho de pacote incompativel (Recebido: %d)\"}\n", packetSize);
         }
     }
 }

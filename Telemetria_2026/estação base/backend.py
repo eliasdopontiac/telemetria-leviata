@@ -6,6 +6,7 @@ import os
 
 from config import CSV_FILE
 
+
 class TelemetryBackend:
     def __init__(self, ui_callback):
         self.ui_callback = ui_callback
@@ -24,7 +25,7 @@ class TelemetryBackend:
                 if not file_exists or os.path.getsize(CSV_FILE) == 0:
                     csv.writer(f).writerow(self._header)
         except Exception as e:
-            print(f"Erro ao inicializar CSV: {e}")
+            pass
 
     def process(self, payload, source):
         if not payload:
@@ -74,9 +75,9 @@ class TelemetryBackend:
                 n_int.get("lon", 0),
                 v_sist,
                 p.get("fardriver_falha", 0),
-                sig.get("lora_pacotes", 0),
-                sig.get("lora", 0),
-                sig.get("lte", 0),
+                sig.get("lora_pacotes", 0) if source == "LoRa" else 0,
+                sig.get("lora", 0) if source == "LoRa" else 0,
+                sig.get("lte", 0) if source == "LTE" else 0,
             ]
 
             with self.lock:
@@ -85,7 +86,6 @@ class TelemetryBackend:
             
             self.ui_callback(data, source)
         except json.JSONDecodeError:
-            if len(payload) > 5:
-                print(f"JSON inválido de {source}: {payload}")
+            pass
         except Exception as e:
-            print(f"Erro ao processar ({source}): {e}")
+            pass

@@ -122,7 +122,7 @@ void onReceive(int packetSize) {
 
   // Lê o primeiro byte para identificar o tipo de pacote
   messageType = (char)LoRa.read();
-  
+
   if (messageType == 'B' && packetSize == sizeof(BmvPacket) + 1) {
     LoRa.readBytes((uint8_t*)&bmvData, sizeof(BmvPacket));
     dataReceived = true;
@@ -147,7 +147,7 @@ void onReceive(int packetSize) {
 // ---------------------------------------------------
 void publishReceivedData() {
   char buf[256];
-  
+
   Serial.print("Publicando dados... Tipo: ");
   Serial.println(messageType);
 
