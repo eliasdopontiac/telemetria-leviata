@@ -1,0 +1,8 @@
+2026-06-03 22:19:31,692 [INFO] Assets path configured: C:\Users\Ryzen 7\Documents\GitHub\telemetria-leviata\Telemetria_2026\estação base\assets
+2026-06-03 22:19:31,693 [INFO] Starting up TCP server on localhost:63620
+2026-06-03 22:19:31,702 [INFO] Flet app has started...
+2026-06-03 22:19:31,709 [INFO] App URL: tcp://localhost:63620
+2026-06-03 22:19:31,709 [INFO] Starting Flet View app...
+2026-06-03 22:19:31,715 [INFO] Flet client found in cache: C:\Users\Ryzen 7\.flet\client\flet-desktop-full-0.85.1
+2026-06-03 22:19:32,123 [INFO] App session started
+2026-06-03 22:19:41,141 [INFO] Session was garbage collected: LYiYqLFA6i6gN7TO

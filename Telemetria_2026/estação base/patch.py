@@ -17,11 +17,7 @@ if 'txt_gps_status' not in d:
                     lat, lon = to_f(n.get("lat", 0)), to_f(n.get("lon", 0))
                     lat_i, lon_i = to_f(n_int.get("lat", 0)), to_f(n_int.get("lon", 0))
                     gps_ativo_lat, gps_ativo_lon = lat, lon
-                    if lat == 0 and lat_i != 0:
-                        gps_ativo_lat, gps_ativo_lon = lat_i, lon_i
-                        txt_gps_status.value = "GPS: BACKUP LILYGO ATIVO"
-                        txt_gps_status.color = config.AMBER
-                    elif lat != 0 and lat_i != 0:
+                    if lat != 0 and lat_i != 0:
                         diff = abs(lat - lat_i) + abs(lon - lon_i)
                         if diff > 0.002:
                             txt_gps_status.value = "GPS: ALERTA DE DISCREPANCIA"
@@ -29,6 +25,13 @@ if 'txt_gps_status' not in d:
                         else:
                             txt_gps_status.value = "GPS: SINCRONIZADOS"
                             txt_gps_status.color = config.SUCCESS
+                    elif lat != 0:
+                        txt_gps_status.value = "GPS: SINAL OK"
+                        txt_gps_status.color = config.SUCCESS
+                    elif lat_i != 0:
+                        gps_ativo_lat, gps_ativo_lon = lat_i, lon_i
+                        txt_gps_status.value = "GPS: BACKUP LILYGO ATIVO"
+                        txt_gps_status.color = config.AMBER
                     else:
                         txt_gps_status.value = "GPS: SEM SINAL"
                         txt_gps_status.color = config.MUTED
