@@ -1,13 +1,12 @@
-﻿
-/*
- * Telemetria Leviata 2026 - Central Hub V12 (PRODUCAO FINAL)
+﻿/*
+ * Telemetria Leviata 2026 - Central Hub V12 (PRODUCAO FINAL - FIXED)
  * Dispositivo: Heltec WiFi LoRa 32 V3 (ESP32-S3)
- * Uso de heltec_unofficial.h para suporte correto ao radio SX1262.
  */
 
 #define HELTEC_NO_LED
 #include <heltec_unofficial.h>
 #include <TinyGPS++.h>
+#include <SoftwareSerial.h>
 #include <esp_now.h>
 #include <WiFi.h>
 #include <Adafruit_GFX.h>
@@ -24,8 +23,8 @@
 #define GPS_TX 6
 #define FAR_RX 41
 #define FAR_TX 42
-#define MPPT_RX 39
-#define MPPT_TX 38
+#define MPPT_RX 45
+#define MPPT_TX 46
 
 uint8_t lilygoAddress[] = {0xB0, 0xB2, 0x1C, 0xA5, 0xEC, 0xEC};
 
@@ -34,12 +33,13 @@ typedef struct __attribute__((packed)) struct_telemetry {
     int16_t motor_rpm;
     float motor_corrente_a;
     float motor_v;
-    int8_t motor_temp_c;
-    int8_t ctrl_temp_c;
+    int16_t motor_temp_c;
+    int16_t ctrl_temp_c;
     uint8_t far_falha;
     float solar_p_w;
     float solar_i_a;
     float solar_v_v;
+    float bateria_v;
     double lat;
     double lng;
     float vel_kmh;
@@ -53,9 +53,9 @@ typedef struct __attribute__((packed)) struct_telemetry {
 
 struct_telemetry boatData;
 TinyGPSPlus gps;
-HardwareSerial serialGPS(1);
+SoftwareSerial serialGPS(GPS_RX, GPS_TX);
 HardwareSerial serialFar(2);
-HardwareSerial serialMPPT(0);
+HardwareSerial serialMPPT(1);
 VeDirectFrameHandler mppt_handler;
 Adafruit_SSD1306 tela(128, 64, &Wire, OLED_RST);
 
@@ -93,21 +93,24 @@ void parseMPPT() {
     for (int i = 0; i < mppt_handler.veEnd; i++) {
         String label = String(mppt_handler.veName[i]);
         String value = String(mppt_handler.veValue[i]);
-        if (label == "V") boatData.solar_v_v = value.toFloat() / 1000.0;
+        if (label == "V") boatData.bateria_v = value.toFloat() / 1000.0;
         else if (label == "I") boatData.solar_i_a = value.toFloat() / 1000.0;
         else if (label == "PPV") boatData.solar_p_w = value.toFloat();
+        else if (label == "VPV") boatData.solar_v_v = value.toFloat() / 1000.0;
     }
 }
 
 void setup() {
-    heltec_setup(); // Inicia pinos corretos e VEXT da Heltec V3
+    heltec_setup();
     Serial.begin(115200);
+    // DEBUG: tamanho da struct para verificar packing/compatibilidade
+    Serial.printf("STRUCT_SIZE=%d\n", (int)sizeof(struct_telemetry));
 
     Wire.begin(OLED_SDA, OLED_SCK); tela.begin(SSD1306_SWITCHCAPVCC, 0x3c);
     tela.clearDisplay(); tela.setTextColor(WHITE);
     tela.setCursor(0,0); tela.println("HUB V12 INICIADO"); tela.display();
 
-    serialGPS.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
+    serialGPS.begin(9600);
     serialFar.begin(19200, SERIAL_8N1, FAR_RX, FAR_TX);
     serialMPPT.begin(19200, SERIAL_8N1, MPPT_RX, MPPT_TX);
 
@@ -117,7 +120,6 @@ void setup() {
     memcpy(peerInfo.peer_addr, lilygoAddress, 6);
     esp_now_add_peer(&peerInfo);
 
-    // --- LORA ATIVADO USANDO RADIOLIB (COMPATIVEL COM V3) ---
     RADIOLIB_OR_HALT(radio.begin());
     radio.setFrequency(915.0);
     radio.setSpreadingFactor(10);
@@ -162,9 +164,10 @@ void loop() {
                         boatData.motor_rpm = abs(rpm) < 20 ? 0 : abs(rpm);
                         boatData.far_falha = decodeFardriverError(&farBuf[2]);
                     } else if (addr == 0xF4) {
-                        boatData.motor_temp_c = ((farBuf[1] << 8) | farBuf[0]);
+                        // Motor temperature is at data offset 0 (farBuf[2..3]) — follow Fardriver_pro layout
+                        boatData.motor_temp_c = (int16_t)((farBuf[3] << 8) | farBuf[2]);
                     } else if (addr == 0xD6) {
-                        boatData.ctrl_temp_c = ((farBuf[11] << 8) | farBuf[10]);
+                        boatData.ctrl_temp_c = (int16_t)((farBuf[13] << 8) | farBuf[12]);
                     }
                 }
             }
@@ -175,16 +178,18 @@ void loop() {
 
     if (millis() - lastSend > 2500) {
         lastSend = millis();
+        // DEBUG: imprimir primeiros bytes do pacote para checar packing/endianness
+        uint8_t *p = (uint8_t *)&boatData;
+        Serial.print("OUT_BYTES: ");
+        for (int i = 0; i < min((int)sizeof(boatData), 12); i++) Serial.printf("%02X ", p[i]);
+        Serial.println();
 
-        // 1. Envia via ESP-NOW para LilyGO
         esp_now_send(lilygoAddress, (uint8_t *) &boatData, sizeof(boatData));
-
-        // 2. Transmite via LoRa para Estacao Base
         radio.transmit((uint8_t*)&boatData, sizeof(boatData));
 
         tela.clearDisplay(); tela.setCursor(0,0);
         tela.printf("HUB V12 FINAL\n");
-        tela.printf("RPM: %d\nV: %0.1f\n", boatData.motor_rpm, boatData.motor_v);
+        tela.printf("RPM: %d\nBAT: %0.1fV\n", boatData.motor_rpm, boatData.bateria_v);
         tela.printf("LORA TX OK!\n");
         tela.display();
     }

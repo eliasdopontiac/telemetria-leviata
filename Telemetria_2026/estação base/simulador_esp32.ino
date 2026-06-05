@@ -12,7 +12,7 @@ const char* ssid = "NOME_DO_SEU_WIFI";
 const char* password = "SENHA_DO_SEU_WIFI";
 
 // Voltando para o HiveMQ
-const char* mqtt_broker = "broker.hivemq.com"; 
+const char* mqtt_broker = "broker.hivemq.com";
 const char* mqtt_topic = "barco/telemetria/LTE";
 const int mqtt_port = 1883;
 
@@ -41,7 +41,7 @@ void reconnect() {
     Serial.print("MQTT Connect (HiveMQ)...");
     String clientId = "LeviataBoat-";
     clientId += String(random(0xffff), HEX);
-    
+
     if (client.connect(clientId.c_str())) {
       Serial.println("SUCESSO!");
       client.subscribe(mqtt_topic);
@@ -77,7 +77,7 @@ void loop() {
     json += "\"nav\":{\"vel\":15.5,\"lat\":-3.11902,\"lon\":-60.02173,\"gps_hora\":\"12:00:00\",\"gps_satelites\":10},";
     json += "\"sinal\":{\"lora\":-80,\"lte\":22,\"lora_pacotes\":" + String(packetSequence) + "}}";
 
-    Serial.println(json); 
+    Serial.println(json);
     client.publish(mqtt_topic, json.c_str());
   }
 }
