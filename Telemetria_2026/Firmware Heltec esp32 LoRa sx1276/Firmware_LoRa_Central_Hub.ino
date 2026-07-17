@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Telemetria Leviata 2026 - Central Hub V12 (PRODUCAO FINAL - FIXED)
  * Dispositivo: Heltec WiFi LoRa 32 V3 (ESP32-S3)
  */
@@ -141,7 +141,13 @@ void loop() {
         boatData.gps_course = gps.course.deg(); boatData.gps_hdop = gps.hdop.hdop();
     }
     if (gps.time.isValid()) {
-        boatData.gps_h = gps.time.hour(); boatData.gps_m = gps.time.minute(); boatData.gps_s = gps.time.second();
+        int local_hour = gps.time.hour() - 4; // UTC-4 (Manaus Time)
+        if (local_hour < 0) {
+            local_hour += 24;
+        }
+        boatData.gps_h = (uint8_t)local_hour;
+        boatData.gps_m = gps.time.minute();
+        boatData.gps_s = gps.time.second();
     }
 
     if (millis() - lastKA > 1000) { sendKeepAlive(); lastKA = millis(); }
@@ -176,8 +182,15 @@ void loop() {
     }
     parseMPPT();
 
+    static bool tx_in_progress = false;
     if (millis() - lastSend > 2500) {
         lastSend = millis();
+
+        if (tx_in_progress) {
+            radio.finishTransmit();
+            tx_in_progress = false;
+        }
+
         // DEBUG: imprimir primeiros bytes do pacote para checar packing/endianness
         uint8_t *p = (uint8_t *)&boatData;
         Serial.print("OUT_BYTES: ");
@@ -185,7 +198,11 @@ void loop() {
         Serial.println();
 
         esp_now_send(lilygoAddress, (uint8_t *) &boatData, sizeof(boatData));
-        radio.transmit((uint8_t*)&boatData, sizeof(boatData));
+        
+        int state = radio.startTransmit((uint8_t*)&boatData, sizeof(boatData));
+        if (state == RADIOLIB_ERR_NONE) {
+            tx_in_progress = true;
+        }
 
         tela.clearDisplay(); tela.setCursor(0,0);
         tela.printf("HUB V12 FINAL\n");
