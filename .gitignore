@@ -1,0 +1,24 @@
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
+# Virtual Environments
+.venv/
+.venv-1/
+venv/
+ENV/
+
+# Editor/IDE configs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
