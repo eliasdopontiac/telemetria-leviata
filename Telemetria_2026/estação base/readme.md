@@ -1,144 +1,153 @@
-﻿# 🚤 Telemetria Leviatã v2026 — Estação Base Central
+# 🚤 Telemetria Leviatã v2026 — Estação Base Central
 
-![Flet](https://img.shields.io/badge/UI-Flet-blue?style=for-the-badge&logo=python)
-![MQTT](https://img.shields.io/badge/Link-MQTT-green?style=for-the-badge&logo=mqtt)
-![LoRa](https://img.shields.io/badge/Radio-LoRa-purple?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![React](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Build-Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![NodeJS](https://img.shields.io/badge/Backend-Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Socket.io](https://img.shields.io/badge/Realtime-Socket.io-010101?style=for-the-badge&logo=socketdotio&logoColor=white)
+![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![LoRa](https://img.shields.io/badge/Radio-LoRa_915MHz-purple?style=for-the-badge)
 
-A **Estação Base Central** é o coração do sistema de monitoramento da equipe **Leviatã**. Desenvolvida em Python com o framework **Flet**, ela centraliza dados provenientes de múltiplas fontes (Rádio LoRa e Nuvem MQTT/LTE), fornecendo uma interface de alta performance para tomada de decisão tática em tempo real durante competições de barcos solares.
+A **Estação Base Central** é o sistema de monitoramento da equipe **Leviatã 2026**. Desenvolvida com **React 19**, **Vite** e **Node.js (Express + Socket.IO)**, a aplicação oferece um dashboard moderno em tempo real com **arquitetura multi-página**, suporte a **dispositivos móveis**, histórico em banco **SQLite** e telemetria via rádio **LoRa / Serial USB**.
 
 ---
 
 ## 🏗️ Arquitetura do Sistema
 
-O sistema opera em uma configuração de redundância dual-link:
-
 ```mermaid
 graph TD
-    A[Barco Solar] -->|LoRa 915MHz| B(Receptor USB Heltec)
-    A -->|4G LTE| C[Broker MQTT]
-    B -->|Serial/JSON| D[Estação Base Central]
-    C -->|Internet/JSON| D
-    D -->|Log| E[(telemetria_solar.csv)]
-    D -->|UI| F[Dashboard Interativo]
+    A[Barco Solar / ESP32] -->|LoRa 915MHz| B(Receptor USB Base)
+    B -->|Serial / JSON| C[Backend Node.js]
+    C -->|Persistência| D[(Banco SQLite)]
+    C -->|WebSockets| E[Frontend React]
+    E --> F[Página Visão Geral]
+    E --> G[Página Gráficos & Análise]
+    E --> H[Exportação CSV]
 ```
 
-1.  **Link Primário (LoRa):** Comunicação direta via rádio, independente de internet.
-2.  **Link Secundário (LTE/MQTT):** Backup via rede celular para cobertura estendida.
-3.  **Processamento:** O backend unifica as fontes, remove duplicatas e faz o log persistente.
+1. **Recepção de Rádio (LoRa 915MHz):** O rádio base recebe os pacotes de telemetria serial em formato JSON do barco.
+2. **Backend Node.js (`backend-node`):**
+   - Gerencia a conexão com a porta Serial USB (`serialport`).
+   - Persiste cada registro no banco de dados **SQLite3** (`database.js`).
+   - Transmite os dados em tempo real via **WebSockets (Socket.IO)** com baixa latência.
+   - Fornece um simulador de telemetria integrado para testes sem hardware.
+3. **Frontend React (`frontend-react`):**
+   - **Visão Geral (Dashboard Principal):** Indicadores analógicos SVG (Velocidade, RPM, Solar), Mapa GPS com mapa escuro CartoDB, Cronômetro de Voltas (*Lap Timer*), Nível de bateria LiFePO4, Alertas de Segurança e Gráfico de Corrente em Amperes ($A$).
+   - **Gráficos & Análise:** Histórico de séries temporais de Geração vs Consumo, Temperaturas (Motor/Ctrl) e Rotação.
+   - **Responsividade:** Layout com rolagens ativas no celular/tablet.
 
 ---
 
 ## 📊 Funcionalidades Principais
 
-### 🛰️ Navegação & Posicionamento
-- **Mapa em Tempo Real:** Visualização da trajetória com centralização automática.
-- **Métricas Críticas:** Velocidade (Km/h e Nós), Satélites detectados, **Proa (Heading)** e precisão **HDOP**.
+### 🗺️ Navegação & Posicionamento GPS
+- **Mapa em Tempo Real:** Renderização vetorial com camada escura nativa (CartoDB Dark Matter) e traçado de rota.
+- **Telemetria de Voo:** Velocidade ($km/h$), Proa em Graus ($^\circ$), Quantidade de Satélites detectados e Horário GPS.
 
-### 🔋 Gestão de Energia (BMS & MPPT)
-- **Estado de Carga (SoC %):** Acompanhamento preciso do nível da bateria.
-- **Balanço Energético:** Monitoramento de corrente líquida (carga solar vs. consumo motor).
-- **Predição de Autonomia:** Algoritmo dinâmico que estima tempo e distância restantes.
+### 🔋 Gestão de Energia (LiFePO4 & MPPT)
+- **Fluxo de Energia Integrado:** Visualização dinâmica da entrada solar ($W$) e do consumo do motor ($W$).
+- **Indicador de Carga (SoC %):** Células visuais graduadas de 10% a 100% com alertas em zonas críticas.
+- **Comparativo de Corrente em Amperes ($A$):** Gráfico unificado de Entrada Solar ($A$), Saída Motor ($A$) e Corrente Líquida Bateria ($A$) na mesma escala.
+- **Predição de Autonomia:** Cálculo dinâmico do tempo restante em horas.
 
-### ⚙️ Diagnóstico da Propulsão
-- **Fardriver Integration:** Decodificação em tempo real dos 15 códigos de falha do controlador.
-- **Térmico:** Monitoramento de temperatura do motor e do controlador com alertas visuais.
+### ⚙️ Diagnóstico de Propulsão & Segurança
+- **Decodificação de Erros FarDriver:** Monitoramento em tempo real dos códigos de falha do controlador.
+- **Barras Térmicas de Segurança:** Indicadores com limites operacionais em $65^\circ C$ para motor e caixa eletrônica.
+- **Indicador de Sinal LoRa:** Qualidade do sinal ($dBm$) e contagem de pacotes recebidos (`Pkts`).
 
-### 📈 Análise de Dados
-- **Gráficos Dinâmicos:** Histórico de 200 pontos para Velocidade, Potência Solar, Corrente do Motor e Bateria.
-- **Logs:** Gravação automática de cada pacote recebido em formato `.csv` para análise pós-prova.
+### ⏱️ Cronômetro & Sessões de Prova
+- **Pit Wall Lap Timer:** Marcação de voltas, estatísticas de velocidade máxima, velocidade média e melhor volta.
+- **Gerenciador de Sessões:** Criação de sessões de prova e download do histórico completo em arquivo **CSV**.
 
 ---
 
 ## 📂 Estrutura do Projeto
 
-- `main.py`: Ponto de entrada da aplicação.
-- `dashboard.py`: Lógica da interface, gerenciamento de estados e threads de comunicação.
-- `backend.py`: Motor de processamento de dados e escrita de logs CSV.
-- `ui_components.py`: Biblioteca de widgets customizados (Cards, Badges, LEDs).
-- `config.py`: Central de configurações (Portas, Broker, Cores, Parâmetros do Barco).
-- `simulador_dados.py`: Utilitário para testar a interface sem hardware físico.
+```
+estação base/
+├── backend-node/               # Servidor Node.js (API & WebSockets)
+│   ├── database.js             # Conexão e queries SQLite
+│   ├── serialManager.js        # Leitura e detecção da porta Serial USB
+│   ├── simulator.js            # Gerador de pacotes para simulação
+│   └── server.js               # Ponto de entrada do servidor Express/Socket.IO
+│
+├── frontend-react/             # Aplicação React 19 (Vite)
+│   ├── src/
+│   │   ├── components/         # Widgets (BoatMap, CircularGauge, BatteryWidget, etc.)
+│   │   ├── pages/              # Páginas (DashboardPage, AnalyticsPage)
+│   │   ├── services/           # Conexão Socket.IO e chamadas REST API
+│   │   ├── App.jsx             # Roteador principal e gerenciador de estado
+│   │   └── index.css           # Sistema de design Cockpit e classes utilitárias
+│   └── package.json
+│
+├── backend.py                  # Backend alternativo em Python (Legado)
+└── dashboard.py                # Dashboard alternativo em Flet (Legado)
+```
 
 ---
 
-## 🚀 Guia de Instalação
+## 🚀 Guia de Instalação e Execução
 
 ### Pré-requisitos
-- Python 3.10 ou superior instalado.
+- **Node.js** v18.0 ou superior instalado.
 
-### 1. Clonar e Preparar Ambiente
-```powershell
-# Criar ambiente virtual
-python -m venv .venv
+---
 
-# Ativar ambiente (Windows)
-.\.venv\Scripts\activate
+### 1. Iniciar o Backend (Node.js)
+
+```bash
+cd "estação base/backend-node"
 
 # Instalar dependências
-pip install flet pyserial paho-mqtt flet-charts flet-map
-```
+npm install
 
-### 2. Configuração
-Edite o arquivo `config.py` para ajustar as portas seriais e endereços do broker conforme necessário:
-```python
-SERIAL_PORT = "COM3"
-MQTT_TOPIC = "leviata/telemetria/race"
+# Iniciar o servidor
+npm start
 ```
+O backend rodará na porta `http://localhost:3001`.
 
-### 3. Execução
-```powershell
-python main.py
+---
+
+### 2. Iniciar o Frontend (React)
+
+Em um novo terminal:
+
+```bash
+cd "estação base/frontend-react"
+
+# Instalar dependências
+npm install
+
+# Iniciar o servidor de desenvolvimento
+npm run dev -- --host
 ```
+Acesse o dashboard pelo navegador no endereço `http://localhost:5173`.
 
 ---
 
 ## 📡 Protocolo de Dados (JSON)
 
-O sistema espera o seguinte formato de payload:
+O sistema espera o seguinte formato de payload via rádio LoRa / Serial:
 
 ```json
 {
-  "solar": {"tensao": 46.5, "corrente": 5.9, "pot": 277},
-  "bateria": {"soc": 85, "tensao_bat": 50.7, "corrente_liq": -10.6},
-  "prop": {"rpm": 1314, "i_motor": 16.6, "t_motor": 54, "t_ctrl": 37, "fardriver_falha": 0},
-  "nav": {"vel": 19.7, "lat": -3.1194, "lon": -60.0216, "gps_satelites": 10, "gps_hora": "12:00:00", "proa": 184.8, "hdop": 0.8},
-  "sinal": {"lora_pacotes": 125, "lora": -83, "lte": 29},
+  "solar": { "tensao": 46.5, "corrente": 5.9, "pot": 277 },
+  "bateria": { "soc": 85, "tensao_bat": 50.7, "corrente_liq": -10.6 },
+  "prop": { "rpm": 1314, "i_motor": 16.6, "t_motor": 54, "t_ctrl": 37, "fardriver_falha": 0 },
+  "nav": { "vel": 19.7, "lat": -3.1194, "lon": -60.0216, "gps_satelites": 10, "gps_hora": "12:00:00", "proa": 184.8, "hdop": 0.8 },
+  "sinal": { "lora_pacotes": 125, "lora": -83, "lte": 29 },
   "v_sist": 4.1
 }
 ```
 
 ---
 
-## 🛠️ Desenvolvimento e Testes
+## 🧪 Modo Simulação (Sem Hardware)
 
 Para testar a interface sem um rádio conectado:
-1. Execute o script de simulação: `python simulador_dados.py`
-2. Copie o JSON gerado e utilize ferramentas de injeção serial ou publique no broker MQTT configurado.
+1. Abra o dashboard na web (`http://localhost:5173`).
+2. Clique no botão **"Simular"** (Simulador ON) no cabeçalho superior.
+3. O backend começará a gerar dados de navegação, telemetria e bateria dinamicamente.
 
 ---
 
-## 📦 Compilação (.exe)
-
-Para gerar o executável stand-alone para Windows:
-
-```powershell
-python -m PyInstaller --noconsole --onefile --collect-all flet --collect-all flet_charts --collect-all flet_map --name "Telemetria_Leviata_2026" --icon="seu_icone.ico" main.py
-```
-
----
-
-## ❓ Solução de Problemas (FAQ)
-
-**1. A porta Serial não abre:**
-- Verifique se o driver da Heltec/ESP32 está instalado.
-- Certifique-se de que nenhum outro programa (como o Arduino IDE) está usando a porta.
-
-**2. O mapa não carrega:**
-- Verifique sua conexão com a internet (necessária para carregar os tiles do OpenStreetMap).
-
-**3. Dados MQTT não aparecem:**
-- Verifique se o `MQTT_TOPIC` no `config.py` é exatamente o mesmo enviado pelo barco.
-- Teste a conexão com o broker usando o [MQTT Explorer](http://mqtt-explorer.com/).
-
----
-**Engenharia de Software:** Desenvolvido por Equipe Leviatã. Foco em robustez, baixa latência e UX crítica.
+**Engenharia de Software:** Desenvolvido por Equipe Leviatã. Foco em alta disponibilidade, inteligência tática e UX em tempo real.
