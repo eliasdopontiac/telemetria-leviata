@@ -2,8 +2,8 @@ import csv
 import json
 import logging
 import logging.handlers
-import re
 import os
+import re
 import threading
 from datetime import datetime
 
@@ -12,9 +12,11 @@ from config import CSV_FILE
 # Configuração de logging com rotação
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-log_handler = logging.handlers.RotatingFileHandler('telemetria_backend.log', maxBytes=1024*1024, backupCount=5, encoding='utf-8')
+log_handler = logging.handlers.RotatingFileHandler(
+    "telemetria_backend.log", maxBytes=1024 * 1024, backupCount=5, encoding="utf-8"
+)
 console_handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 log_handler.setFormatter(formatter)
 console_handler.setFormatter(formatter)
 logger.addHandler(log_handler)
@@ -63,9 +65,9 @@ class TelemetryBackend:
             with self.lock:
                 with open(CSV_FILE, "a", newline="", encoding="utf-8") as f:
                     if not file_exists or os.path.getsize(CSV_FILE) == 0:
-                                    writer = csv.DictWriter(f, fieldnames=self._header)
-                                    writer.writeheader()
-                                    logger.info(f"Novo CSV criado: {CSV_FILE}")
+                        writer = csv.DictWriter(f, fieldnames=self._header)
+                        writer.writeheader()
+                        logger.info(f"Novo CSV criado: {CSV_FILE}")
         except Exception as e:
             logger.error(f"Falha ao inicializar CSV: {e}", exc_info=True)
 
@@ -178,9 +180,19 @@ class TelemetryBackend:
                 lat_f = lon_f = 0.0
                 hdop_f = 99.9
 
-            if not (-90.0 <= lat_f <= 90.0 and -180.0 <= lon_f <= 180.0) or hdop_f < 0 or hdop_f > 50:
-                row_dict["status_data"] = (row_dict["status_data"] + ";suspect_coords") if row_dict["status_data"] else "suspect_coords"
-                logger.warning(f"GPS fora de range ou HDOP inválido: lat={lat}, lon={lon}, hdop={hdop} | RawHex: {raw_bytes[:64].hex()}")
+            if (
+                not (-90.0 <= lat_f <= 90.0 and -180.0 <= lon_f <= 180.0)
+                or hdop_f < 0
+                or hdop_f > 50
+            ):
+                row_dict["status_data"] = (
+                    (row_dict["status_data"] + ";suspect_coords")
+                    if row_dict["status_data"]
+                    else "suspect_coords"
+                )
+                logger.warning(
+                    f"GPS fora de range ou HDOP inválido: lat={lat}, lon={lon}, hdop={hdop} | RawHex: {raw_bytes[:64].hex()}"
+                )
 
             # Escrita thread-safe via DictWriter
             with self.lock:
@@ -196,9 +208,7 @@ class TelemetryBackend:
                 raw_hex = raw_bytes[:100].hex()
             except Exception:
                 raw_hex = repr(raw_bytes[:100])
-            logger.error(
-                f"JSON Corrompido ({source}): {str(je)} | RawHex: {raw_hex}"
-            )
+            logger.error(f"JSON Corrompido ({source}): {str(je)} | RawHex: {raw_hex}")
         except Exception as e:
             logger.exception(f"Erro crítico no processamento ({source}): {e}")
             # Tenta logar a linha como inválida se o DictWriter falhar

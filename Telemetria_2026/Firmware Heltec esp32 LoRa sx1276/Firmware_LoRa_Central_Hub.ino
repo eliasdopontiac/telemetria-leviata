@@ -198,7 +198,7 @@ void loop() {
         Serial.println();
 
         esp_now_send(lilygoAddress, (uint8_t *) &boatData, sizeof(boatData));
-        
+
         int state = radio.startTransmit((uint8_t*)&boatData, sizeof(boatData));
         if (state == RADIOLIB_ERR_NONE) {
             tx_in_progress = true;

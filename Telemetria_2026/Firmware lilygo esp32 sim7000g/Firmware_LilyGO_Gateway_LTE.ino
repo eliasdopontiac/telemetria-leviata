@@ -70,10 +70,10 @@ void setup() {
     WiFi.mode(WIFI_STA);
     esp_now_init();
     esp_now_register_recv_cb(OnDataRecv);
-    
+
     pinMode(PWR_PIN, OUTPUT);
     digitalWrite(PWR_PIN, HIGH); delay(1000); digitalWrite(PWR_PIN, LOW);
-    
+
     Serial1.begin(115200, SERIAL_8N1, PIN_RX, PIN_TX);
     mqtt.setServer(broker, 1883);
     mqtt.setBufferSize(1536);
@@ -90,7 +90,7 @@ void loop() {
     if (hasNewData) {
         hasNewData = false;
         StaticJsonDocument<1536> doc;
-        
+
         JsonObject solar = doc.createNestedObject("solar");
         solar["tensao"] = rxData.solar_v_v;
         solar["corrente"] = rxData.solar_i_a;
