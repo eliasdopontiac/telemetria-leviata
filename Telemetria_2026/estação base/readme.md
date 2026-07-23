@@ -87,38 +87,31 @@ estação base/
 
 ## 🚀 Guia de Instalação e Execução
 
-### Pré-requisitos
-- **Node.js** v18.0 ou superior instalado.
+### 🎒 Modo Portátil de Pista (1 Clique - Recomendado)
+1. Navegue até a pasta `estação base` ou `estação base web`.
+2. Dê **2 cliques** no arquivo executável:
+   ```cmd
+   START_TELEMETRIA.bat
+   ```
+3. O servidor abrirá automaticamente a interface em `http://localhost:3001` no seu navegador sem necessidade de instalar o Node.js.
 
 ---
 
-### 1. Iniciar o Backend (Node.js)
+### 💻 Modo de Desenvolvimento (NPM)
 
+#### 1. Iniciar o Backend Node.js
 ```bash
-cd "estação base/backend-node"
-
-# Instalar dependências
+cd "estação base web/backend-node"
 npm install
-
-# Iniciar o servidor
-npm start
+node server.js
 ```
 O backend rodará na porta `http://localhost:3001`.
 
----
-
-### 2. Iniciar o Frontend (React)
-
-Em um novo terminal:
-
+#### 2. Iniciar o Frontend React (Vite Hot Reload)
 ```bash
-cd "estação base/frontend-react"
-
-# Instalar dependências
+cd "estação base web/frontend-react"
 npm install
-
-# Iniciar o servidor de desenvolvimento
-npm run dev -- --host
+npm run dev
 ```
 Acesse o dashboard pelo navegador no endereço `http://localhost:5173`.
 
