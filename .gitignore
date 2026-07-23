@@ -14,6 +14,11 @@ dist/
 venv/
 ENV/
 
+# Node.js dependencies
+node_modules/
+*.db
+*.log
+
 # Editor/IDE configs
 .vscode/
 .idea/
