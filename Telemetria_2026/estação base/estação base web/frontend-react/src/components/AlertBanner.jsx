@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ShieldWarning, Fire, BatteryLow, Sun } from '@phosphor-icons/react';
 import Lottie from './LottieWrapper';
 import { warningPulseLottie } from '../assets/lottieAnimations';
+import audioAlerts from '../services/audioAlerts';
 
 export default function AlertBanner({ telemetryData }) {
   if (!telemetryData) return null;
@@ -15,6 +16,17 @@ export default function AlertBanner({ telemetryData }) {
   if (prop.t_ctrl > 60) alerts.push({ id: 'tc', type: 'warning', icon: Fire, title: `CONTROLADOR QUENTE (${prop.t_ctrl.toFixed(1)} °C)`, desc: 'Verifique a ventilação.' });
   if (bat.soc > 0 && bat.soc < 25) alerts.push({ id: 'soc', type: 'warning', icon: BatteryLow, title: `BATERIA CRÍTICA (${bat.soc.toFixed(1)}%)`, desc: 'Economize energia.' });
   if (statusData.includes('solar_fallback')) alerts.push({ id: 'sf', type: 'info', icon: Sun, title: 'FALLBACK SOLAR ATIVO', desc: 'Usando tensão solar como referência.' });
+
+  useEffect(() => {
+    if (alerts.length > 0) {
+      const hasCritical = alerts.some(a => a.type === 'critical');
+      if (hasCritical) {
+        audioAlerts.playCritical();
+      } else {
+        audioAlerts.playWarning();
+      }
+    }
+  }, [alerts.length, prop.fardriver_falha, prop.t_motor, prop.t_ctrl, bat.soc]);
 
   if (alerts.length === 0) return null;
 

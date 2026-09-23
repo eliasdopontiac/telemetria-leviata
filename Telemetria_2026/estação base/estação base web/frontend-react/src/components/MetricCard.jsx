@@ -26,7 +26,7 @@ export default function MetricCard({ title, value, unit, subtitle, icon: Icon, c
       </div>
 
       <div className="metric-value-row">
-        <span className="metric-value" style={{ color: theme.value, textShadow: `0 0 10px ${theme.value}40` }}>
+        <span className="metric-value" style={{ color: theme.value, textShadow: `0 0 10px ${theme.value}40`, transition: 'color var(--duration-modal) var(--ease-out), text-shadow var(--duration-modal) var(--ease-out)' }}>
           {value !== undefined && value !== null ? value : '--'}
         </span>
         {unit && <span className="metric-unit">{unit}</span>}

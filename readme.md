@@ -4,9 +4,9 @@
 
 ![Logo Leviatã](images/logo_leviata.png)
 
-[![Equipe](https://img.shields.io/badge/Equipe-Leviatã%20UEA-blue?style=for-the-badge)](https://www.instagram.com/leviatauea/)
-[![Competição](https://img.shields.io/badge/Competição-Desafio%20Solar%20Brasil-yellow?style=for-the-badge)]()
-[![Linguagens](https://img.shields.io/badge/Linguagens-C%2B%2B%20%7C%20Python-green?style=for-the-badge)]()
+[![Equipe](https://img.shields.io/badge/Equipe-Leviat%C3%A3%20UEA-blue?style=for-the-badge)](https://www.instagram.com/leviatauea/)
+[![Competição](https://img.shields.io/badge/Competi%C3%A7%C3%A3o-Desafio%20Solar%20Brasil-yellow?style=for-the-badge)]()
+[![Linguagens](https://img.shields.io/badge/Linguagens-C%2B%2B%20%7C%20Python%20%7C%20Node.js%20%7C%20React-green?style=for-the-badge)]()
 [![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-success?style=for-the-badge)]()
 
 </div>
@@ -52,13 +52,21 @@ O sistema de telemetria permite:
 ```
 telemetria-leviata/
 │
-├── Telemetria_2026/            # ⭐ Temporada atual: Fardriver Pro (Python + PyQt5)
+├── Telemetria_2026/            # ⭐ Temporada atual
+│   ├── estação base/           #  ├─ Sistema de telemetria LoRa (Estação em Terra)
+│   │   ├── estação base web/   #  │   ├─ App Web: Node.js + React (PRODUÇÃO)
+│   │   └── LoRa Base/          #  │   └─ Firmware ESP32 receptor LoRa
+│   ├── Firmware Heltec .../    #  ├─ Hub LoRa multi-canal
+│   ├── Firmware lilygo .../    #  ├─ Gateway LTE / MQTT
+│   ├── Fardriver_pro/          #  ├─ Dashboard Python do motor BLDC
+│   └── fardriver_scripts/      #  └─ Protótipos e scripts de análise
+│
 ├── TELEMETRIA 2025/            # LoRa ponto-a-ponto e integração BMV
 ├── telemetria_2024-2025/       # BMV, MPPT e GPS com Blynk
-├── telemetria_2023-2024/       # Módulos experimentais: CAN, LoRa, ESP-NOW, GPS...
+├── telemetria_2023-2024/       # Módulos experimentais: CAN, LoRa, ESP-NOW, GPS
 ├── BMV-Victron Energy/         # Leitura serial do SmartShunt via ESP32
 ├── PAIC/                       # Pesquisa acadêmica em comunicação sem fio
-├── bibliotecas/                # Bibliotecas Arduino locais (drivers e dependências)
+├── bibliotecas/                # Bibliotecas Arduino locais
 └── images/                     # Assets gráficos do projeto
 ```
 
@@ -71,7 +79,7 @@ telemetria-leviata/
 | 2023-2024 | `telemetria_2023-2024/` | CAN Bus, LoRa, ESP-NOW, Blynk | ✅ Concluída |
 | 2024-2025 | `telemetria_2024-2025/` | BMV + MPPT + GPS via Blynk | ✅ Concluída |
 | 2025 | `TELEMETRIA 2025/` | LoRa ponto-a-ponto, BMV serial | ✅ Concluída |
-| 2026 | `Telemetria_2026/` | Fardriver Serial, PyQt5, Relatórios HTML | 🚧 Em andamento |
+| 2026 | `Telemetria_2026/` | LoRa + Estação Base Web (Node.js + React) + Fardriver Pro | 🚧 Em andamento |
 
 ---
 

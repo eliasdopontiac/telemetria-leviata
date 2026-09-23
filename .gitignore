@@ -18,6 +18,7 @@ ENV/
 node_modules/
 *.db
 *.log
+*.zip
 
 # Editor/IDE configs
 .vscode/

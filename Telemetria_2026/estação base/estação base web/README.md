@@ -4,6 +4,16 @@ Sistema moderno de monitoramento em tempo real da telemetria do barco solar da *
 
 ---
 
+## 🎬 Preview
+
+### Visão Geral — Dashboard em Tempo Real
+![Dashboard Visão Geral](animacao.gif)
+
+### Gráficos de Telemetria
+![Gráficos de Telemetria](grafico.gif)
+
+---
+
 ## ⚡ Recursos Principais
 
 - **Dashboard Futurista & Responsivo**:

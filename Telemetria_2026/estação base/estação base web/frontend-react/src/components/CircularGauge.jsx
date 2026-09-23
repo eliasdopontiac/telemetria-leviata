@@ -27,7 +27,7 @@ export default function CircularGauge({ value = 0, min = 0, max = 100, title, un
           <circle cx={cx} cy={cy} r={r} fill="none" stroke={activeColor} strokeWidth={sw}
             strokeDasharray={`${arc} ${circ}`} strokeDashoffset={offset} strokeLinecap="round"
             transform={`rotate(135 ${cx} ${cy})`}
-            style={{ transition: 'stroke-dashoffset 0.4s ease, stroke 0.3s', filter: `drop-shadow(0 0 6px ${activeColor}80)` }} />
+            style={{ transition: 'stroke-dashoffset var(--duration-normal) var(--ease-out), stroke var(--duration-normal) var(--ease-out)', filter: `drop-shadow(0 0 6px ${activeColor}80)` }} />
         </svg>
         <div className="gauge-value-overlay">
           <span className="gauge-value" style={{ color: activeColor, textShadow: `0 0 10px ${activeColor}60` }}>
