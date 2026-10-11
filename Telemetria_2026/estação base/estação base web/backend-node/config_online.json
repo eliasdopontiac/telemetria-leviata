@@ -1,5 +1,5 @@
 {
-  "url_servidor_online": "eliasdopontiac@gmail.com",
+  "url_servidor_online": "https://keno-identified-live-everybody.trycloudflare.com",
   "email_notificacao": {
     "habilitado": true,
     "smtp_host": "smtp.gmail.com",

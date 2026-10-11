@@ -122,12 +122,19 @@ function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial', opts = {}) {
     let data = {};
     try {
       if (typeof rawPayload === 'string') {
-        data = JSON.parse(rawPayload);
+        const trimmed = rawPayload.replace(/\0/g, '').trim();
+        const start = trimmed.indexOf('{');
+        const end = trimmed.lastIndexOf('}');
+        if (start !== -1 && end > start) {
+          data = JSON.parse(trimmed.substring(start, end + 1));
+        } else {
+          data = JSON.parse(rawPayload);
+        }
       } else {
-        data = rawPayload;
+        data = rawPayload || {};
       }
     } catch (e) {
-      return reject(new Error('Payload JSON inválido'));
+      return reject(new Error(`Payload não é JSON válido: "${String(rawPayload).substring(0, 80)}"`));
     }
 
     const tsIso = opts.timestamp_iso || data.timestamp_iso || new Date().toISOString();
@@ -140,37 +147,37 @@ function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial', opts = {}) {
     const n = data.nav || {};
     const sig = data.sinal || {};
 
-    const vSolar = parseFloat(s.tensao) || 0;
-    const iSolar = parseFloat(s.corrente) || 0;
-    const potSolar = parseFloat(s.pot) || 0;
+    const vSolar = parseFloat(s.tensao !== undefined ? s.tensao : data.v_solar) || 0;
+    const iSolar = parseFloat(s.corrente !== undefined ? s.corrente : data.i_solar) || 0;
+    const potSolar = parseFloat(s.pot !== undefined ? s.pot : data.pot_solar) || (vSolar * iSolar);
 
-    let vBat = parseFloat(b.tensao_bat) || 0;
+    let vBat = parseFloat(b.tensao_bat !== undefined ? b.tensao_bat : data.v_bat) || 0;
     let statusData = 'valid';
     if (vBat <= 0 && vSolar > 0) {
       vBat = vSolar;
       statusData = 'solar_fallback';
     }
 
-    const soc = parseFloat(b.soc) || 0;
-    const iLiq = parseFloat(b.corrente_liq) || 0;
+    const soc = parseFloat(b.soc !== undefined ? b.soc : data.soc) || 0;
+    const iLiq = parseFloat(b.corrente_liq !== undefined ? b.corrente_liq : data.i_liq) || 0;
 
-    const rpm = parseFloat(p.rpm) || 0;
-    const iMotor = parseFloat(p.i_motor) || 0;
-    const tMotor = parseFloat(p.t_motor) || 0;
-    const tCtrl = parseFloat(p.t_ctrl) || 0;
-    const falhaCtrl = parseInt(p.fardriver_falha, 10) || 0;
+    const rpm = parseFloat(p.rpm !== undefined ? p.rpm : data.rpm) || 0;
+    const iMotor = parseFloat(p.i_motor !== undefined ? p.i_motor : data.i_motor) || 0;
+    const tMotor = parseFloat(p.t_motor !== undefined ? p.t_motor : data.t_motor) || 0;
+    const tCtrl = parseFloat(p.t_ctrl !== undefined ? p.t_ctrl : data.t_ctrl) || 0;
+    const falhaCtrl = parseInt(p.fardriver_falha !== undefined ? p.fardriver_falha : data.falha_ctrl, 10) || 0;
 
-    const vel = parseFloat(n.vel) || 0;
-    const lat = parseFloat(n.lat) || 0;
-    const lon = parseFloat(n.lon) || 0;
-    const proa = parseFloat(n.proa) || 0;
-    const gpsSatelites = parseInt(n.gps_satelites, 10) || 0;
-    const gpsHora = n.gps_hora || '--:--:--';
-    const hdop = parseFloat(n.hdop) || 0;
+    const vel = parseFloat(n.vel !== undefined ? n.vel : data.vel) || 0;
+    const lat = parseFloat(n.lat !== undefined ? n.lat : data.lat) || 0;
+    const lon = parseFloat(n.lon !== undefined ? n.lon : data.lon) || 0;
+    const proa = parseFloat(n.proa !== undefined ? n.proa : data.proa) || 0;
+    const gpsSatelites = parseInt(n.gps_satelites !== undefined ? n.gps_satelites : data.gps_satelites, 10) || 0;
+    const gpsHora = n.gps_hora || data.gps_hora || '--:--:--';
+    const hdop = parseFloat(n.hdop !== undefined ? n.hdop : data.hdop) || 0;
 
-    const sinalLora = parseFloat(sig.lora) || 0;
-    const sinalLte = parseFloat(sig.lte) || 0;
-    const pktSeq = parseInt(sig.lora_pacotes, 10) || 0;
+    const sinalLora = parseFloat(sig.lora !== undefined ? sig.lora : data.sinal_lora) || 0;
+    const sinalLte = parseFloat(sig.lte !== undefined ? sig.lte : data.sinal_lte) || 0;
+    const pktSeq = parseInt(sig.lora_pacotes !== undefined ? sig.lora_pacotes : data.pkt_seq, 10) || 0;
     const vSist = parseFloat(data.v_sist) || 0;
 
     const query = `

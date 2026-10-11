@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Cpu, ArrowsClockwise, CheckCircle, WarningCircle } from '@phosphor-icons/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Cpu, ArrowsClockwise, CheckCircle, WarningCircle, TerminalWindow } from '@phosphor-icons/react';
 import { fetchPortasSeriais, conectarSerial, desconectarSerial } from '../services/api';
+import { socket } from '../services/socket';
 
 export default function SerialModal({ isOpen, onClose, serialStatus }) {
   const [portas, setPortas] = useState([]);
@@ -8,20 +9,80 @@ export default function SerialModal({ isOpen, onClose, serialStatus }) {
   const [baudRate, setBaudRate] = useState('115200');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [logs, setLogs] = useState([]);
+  const logEndRef = useRef(null);
 
-  const load = async () => { setLoading(true); setError(''); try { const r = await fetchPortasSeriais(); setPortas(r.portas || []); if (r.portas?.length && !selectedPort) setSelectedPort(r.portas[0].path); } catch (e) { setError(e.message); } finally { setLoading(false); } };
-  useEffect(() => { if (isOpen) load(); }, [isOpen]);
+  const load = async () => { 
+    setLoading(true); 
+    setError(''); 
+    try { 
+      const r = await fetchPortasSeriais(); 
+      setPortas(r.portas || []); 
+      if (r.portas?.length && !selectedPort) setSelectedPort(r.portas[0].path); 
+    } catch (e) { 
+      setError(e.message); 
+    } finally { 
+      setLoading(false); 
+    } 
+  };
+
+  useEffect(() => { 
+    if (isOpen) load(); 
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleLog = (logItem) => {
+      setLogs((prev) => [...prev.slice(-30), logItem]);
+    };
+    socket.on('serial_log', handleLog);
+    return () => {
+      socket.off('serial_log', handleLog);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
+
   if (!isOpen) return null;
 
-  const connect = async () => { if (!selectedPort) { setError('Selecione uma porta.'); return; } setLoading(true); setError(''); try { await conectarSerial(selectedPort, baudRate); onClose(); } catch (e) { setError(e.message); } finally { setLoading(false); } };
-  const disconnect = async () => { setLoading(true); try { await desconectarSerial(); onClose(); } catch (e) { setError(e.message); } finally { setLoading(false); } };
+  const connect = async () => { 
+    if (!selectedPort) { 
+      setError('Selecione uma porta.'); 
+      return; 
+    } 
+    setLoading(true); 
+    setError(''); 
+    try { 
+      await conectarSerial(selectedPort, baudRate); 
+      onClose(); 
+    } catch (e) { 
+      setError(e.message); 
+    } finally { 
+      setLoading(false); 
+    } 
+  };
+
+  const disconnect = async () => { 
+    setLoading(true); 
+    try { 
+      await desconectarSerial(); 
+      onClose(); 
+    } catch (e) { 
+      setError(e.message); 
+    } finally { 
+      setLoading(false); 
+    } 
+  };
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content" style={{ maxWidth: 500 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Cpu size={18} weight="duotone" color="#ffb703" />
+            <Cpu size={18} weight="duotone" color="#ffb703" />
             <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-main)' }}>Porta Serial (LoRa USB)</h3>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}><X size={18} weight="bold" /></button>
@@ -44,11 +105,58 @@ export default function SerialModal({ isOpen, onClose, serialStatus }) {
           </select>
         </div>
 
-        <div style={{ marginBottom: 14 }}>
+        <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Baud Rate:</label>
           <select value={baudRate} onChange={e => setBaudRate(e.target.value)} style={{ width: '100%', background: '#070a11', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-main)', borderRadius: 8, padding: 8, fontSize: 12, fontFamily: 'var(--font-mono)' }}>
             <option value="115200">115200 (Padrão Heltec LoRa)</option><option value="9600">9600</option><option value="57600">57600</option>
           </select>
+        </div>
+
+        {/* Monitor Serial em Tempo Real */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <TerminalWindow size={13} weight="bold" color="#38bdf8" />
+              Monitor Serial (Últimas Leituras):
+            </span>
+            {logs.length > 0 && (
+              <button 
+                type="button" 
+                onClick={() => setLogs([])} 
+                style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 10, cursor: 'pointer' }}
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          <div style={{
+            background: '#040711',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 8,
+            padding: '8px 10px',
+            height: 90,
+            overflowY: 'auto',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            color: '#94a3b8'
+          }}>
+            {logs.length === 0 ? (
+              <span style={{ color: '#475569', fontStyle: 'italic' }}>
+                {serialStatus?.status === 'connected' ? 'Porta aberta. Aguardando pacotes do rádio...' : 'Conecte a porta serial para ver os dados brutos.'}
+              </span>
+            ) : (
+              logs.map((l, idx) => (
+                <div key={idx} style={{ 
+                  color: l.type === 'warning' ? '#f59e0b' : (l.type === 'info' ? '#38bdf8' : '#cbd5e1'),
+                  wordBreak: 'break-all',
+                  marginBottom: 2
+                }}>
+                  {typeof l === 'string' ? l : l.text}
+                </div>
+              ))
+            )}
+            <div ref={logEndRef} />
+          </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>

@@ -54,9 +54,81 @@ async function processarEDistribuir(payload, fonte = 'serial', opts = {}) {
   }
 }
 
+// Tratamento inteligente e resiliente de dados vindos da Porta Serial
+function tratarDadoSerial(rawLine) {
+  if (!rawLine) return;
+  const line = String(rawLine).replace(/\0/g, '').trim();
+  if (!line) return;
+
+  // 1. Verificar se a linha contém JSON delimitado por '{' e '}'
+  const startIdx = line.indexOf('{');
+  const endIdx = line.lastIndexOf('}');
+
+  if (startIdx !== -1 && endIdx > startIdx) {
+    const jsonStr = line.substring(startIdx, endIdx + 1);
+    const prefix = line.substring(0, startIdx).trim();
+
+    // Se havia mensagem antes do JSON (ex: "IN_BYTES: AA 00 12 ...")
+    if (prefix) {
+      console.log(`[Serial LoRa Info]: ${prefix}`);
+      io.emit('serial_log', { text: prefix, type: 'info', ts: new Date().toISOString() });
+    }
+
+    try {
+      const parsed = JSON.parse(jsonStr);
+
+      // Alertas específicos gerados pelo firmware (ex: {"erro_local":"Falha LoRa"})
+      if (parsed.erro_local) {
+        console.warn(`[Serial ESP32 Alerta]: ${parsed.erro_local}`);
+        io.emit('serial_log', { text: `Alerta ESP32: ${parsed.erro_local}`, type: 'warning', ts: new Date().toISOString() });
+        return;
+      }
+
+      // Processa e grava telemetria normalmente
+      processarEDistribuir(parsed, 'serial');
+      return;
+    } catch (err) {
+      console.warn(`[Serial] JSON encontrado com sintaxe incompleta: ${err.message} | Trecho: ${jsonStr}`);
+    }
+  }
+
+  // 2. Formato CSV de telemetria legado (valores separados por vírgula)
+  const parts = line.split(',');
+  if (parts.length >= 6 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+    try {
+      const parsedCsv = {
+        v_bat: parseFloat(parts[0]) || 0,
+        i_liq: parseFloat(parts[1]) || 0,
+        soc: parseFloat(parts[2]) || 0,
+        v_solar: parseFloat(parts[3]) || 0,
+        i_solar: parseFloat(parts[4]) || 0,
+        pot_solar: parseFloat(parts[5]) || 0,
+        rpm: parseInt(parts[6], 10) || 0,
+        i_motor: parseFloat(parts[7]) || 0,
+        t_motor: parseFloat(parts[8]) || 0,
+        t_ctrl: parseFloat(parts[9]) || 0,
+        vel: parseFloat(parts[10]) || 0,
+        lat: parseFloat(parts[11]) || -22.41548354710283,
+        lon: parseFloat(parts[12]) || -41.81782266355955,
+        gps_satelites: parseInt(parts[13], 10) || 0,
+        sinal_lora: parseInt(parts[14], 10) || 0
+      };
+      processarEDistribuir(parsedCsv, 'serial');
+      return;
+    } catch (err) {
+      // Ignora erro de parsing CSV e segue para log normal
+    }
+  }
+
+  // 3. Linha de texto comum / Log de Boot / Debug do Microcontrolador (ESP32)
+  // Ex: "IN_BYTES: AA 00 ...", "STRUCT_SIZE=63", "LoRa OK", etc.
+  console.log(`[Serial RX]: ${line}`);
+  io.emit('serial_log', { text: line, type: 'debug', ts: new Date().toISOString() });
+}
+
 // Handler de dados vindo da Porta Serial
 serialManager.onData((dataString) => {
-  processarEDistribuir(dataString, 'serial');
+  tratarDadoSerial(dataString);
 });
 
 // Handler de status da Porta Serial
