@@ -3,6 +3,7 @@ import { Timer, Flag, Play, Stop, ArrowCounterClockwise, LockKey } from '@phosph
 import { useAuth } from '../context/AuthContext';
 
 export default function LapTimer({ history = [], currentTelemetry }) {
+  const { isTech } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
   const [timeMs, setTimeMs] = useState(0);
   const [laps, setLaps] = useState([]);
