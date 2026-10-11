@@ -6,8 +6,8 @@ class Simulator {
     
     // Estado interno para variação contínua realista
     this.soc = 85.0;
-    this.lat = -22.415484;
-    this.lon = -41.817823;
+    this.lat = -22.41548354710283;
+    this.lon = -41.81782266355955;
     this.proa = 180.0;
     this.pktCount = 1;
   }
@@ -28,8 +28,8 @@ class Simulator {
     this.angle += 0.05;
     if (this.angle > 2 * Math.PI) this.angle = 0;
 
-    const LAT_BASE = -22.415484;
-    const LON_BASE = -41.817823;
+    const LAT_BASE = -22.41548354710283;
+    const LON_BASE = -41.81782266355955;
     this.lat = LAT_BASE + 0.0012 * Math.sin(this.angle);
     this.lon = LON_BASE + 0.0012 * Math.cos(this.angle);
     this.proa = parseFloat(((this.angle * (180.0 / Math.PI) + 90.0) % 360.0).toFixed(1));
