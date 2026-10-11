@@ -1,7 +1,13 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const nodemailer = require('nodemailer');
+
+let nodemailer = null;
+try {
+  nodemailer = require('nodemailer');
+} catch (_) {
+  // nodemailer não instalado; o túnel funcionará exibindo a URL no terminal
+}
 
 const configPath = path.join(__dirname, 'config_online.json');
 let config = {};
@@ -37,6 +43,12 @@ async function enviarEmailNotificacao(urlGerada) {
   if (!emailCfg || !emailCfg.habilitado || !emailCfg.usuario || !emailCfg.senha_app || !emailCfg.destinatario) {
     console.log('\n[Notificador] E-mail não configurado ou desabilitado em config_online.json.');
     console.log('👉 Se desejar receber links por e-mail, preencha as credenciais em config_online.json.\n');
+    return;
+  }
+
+  if (!nodemailer) {
+    console.log('\n[Notificador] Módulo "nodemailer" não encontrado.');
+    console.log('👉 Para ativar o disparo automático por e-mail, execute: npm install nodemailer na pasta backend-node.\n');
     return;
   }
 
