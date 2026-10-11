@@ -1,0 +1,12 @@
+{
+  "url_servidor_online": "eliasdopontiac@gmail.com",
+  "email_notificacao": {
+    "habilitado": true,
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 465,
+    "smtp_secure": true,
+    "usuario": "eliasdopontiac@gmail.com",
+    "senha_app": "qekt xavn tmhi dqzc",
+    "destinatario": "ehlc.eai22@uea.edu.br, eliasdigdin@gmail.com"
+  }
+}

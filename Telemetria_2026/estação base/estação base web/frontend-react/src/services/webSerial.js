@@ -138,8 +138,8 @@ class WebSerialManager {
     const tMotor = parseFloat(p[8]) || 0;
     const tCtrl = parseFloat(p[9]) || 0;
     const vel = parseFloat(p[10]) || 0;
-    const lat = parseFloat(p[11]) || -3.119;
-    const lon = parseFloat(p[12]) || -60.021;
+    const lat = parseFloat(p[11]) || -22.41548354710283;
+    const lon = parseFloat(p[12]) || -41.81782266355955;
     const sats = parseInt(p[13], 10) || 0;
     const lora = parseInt(p[14], 10) || 0;
 

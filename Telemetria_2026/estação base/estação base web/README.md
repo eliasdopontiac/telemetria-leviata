@@ -32,18 +32,35 @@ Sistema moderno de monitoramento em tempo real da telemetria do barco solar da *
 
 ## 🚀 Como Rodar na Pista (1 Clique)
 
-### 🎒 Modo Portátil (Qualquer Notebook Windows)
-1. Copie a pasta **`estação base web`** para o notebook ou pendrive.
-2. Dê **2 cliques** no arquivo:
+### 🎒 Modo 1: Operação Pista 100% Offline (Sem Internet)
+1. Dê **2 cliques** no arquivo original:
    ```cmd
    START_TELEMETRIA.bat
    ```
-3. O servidor será iniciado e o navegador abrirá **automaticamente** no painel central:
-   👉 `http://localhost:3001`
+2. O servidor local será iniciado e o navegador abrirá automaticamente em `http://localhost:3001`. Os dados são gravados localmente no SQLite.
 
-### 📱 Acesso de Outros Dispositivos na Rede
-Qualquer membro da equipe conectado no Wi-Fi da base pode abrir o painel pelo celular ou tablet acessando o IP do computador na porta `:3001`:
-👉 `http://<IP_DO_NOTEBOOK_BASE>:3001`
+---
+
+### 🌐 Modo 2: Operação Online Distribuída (Computador A & Computador B)
+
+Este modo permite que o **Computador A** seja o servidor público e o **Computador B** seja a estação com o rádio LoRa/ESP32 na pista, com sincronização resiliente (se a internet cair no B, os dados continuam gravados no disco e sincronizam automaticamente ao voltar).
+
+#### Passo 1: No Computador A (Servidor Central)
+1. Execute:
+   ```cmd
+   START_SERVIDOR_ONLINE.bat
+   ```
+2. Ele iniciará o servidor e o túnel seguro Cloudflare gerando um link público temporário (ex: `https://xxxx.trycloudflare.com`). Se as credenciais de e-mail estiverem configuradas em `backend-node/config_online.json`, o link será enviado por e-mail automaticamente.
+
+#### Passo 2: No Computador B (Estação de Pista com ESP32)
+1. Conecte o rádio/ESP32 via USB e execute:
+   ```cmd
+   START_TELEMETRIA_ONLINE.bat
+   ```
+2. No painel aberto em `http://localhost:3001`, clique no botão **"Online Sync"** no topo da tela.
+3. Cole o link público gerado no Computador A e clique em **Aplicar URL**.
+4. Pronto! Os dados são gravados localmente no Computador B e enviados simultaneamente para o Computador A.
+
 
 ---
 

@@ -3,8 +3,9 @@ import { NavLink } from 'react-router-dom';
 import {
   FolderSimple, Cpu, WifiHigh, WifiSlash, DownloadSimple,
   ChartLineUp, SquaresFour, SpeakerHigh, SpeakerSlash,
-  FilePdf, FileXls, CaretDown
+  FilePdf, FileXls, CaretDown, CloudArrowUp, LockKey, LockKeyOpen, Eye
 } from '@phosphor-icons/react';
+import { useAuth } from '../context/AuthContext';
 import Lottie from './LottieWrapper';
 import LeviataLogo from './LeviataLogo';
 import { radarPulseLottie } from '../assets/lottieAnimations';
@@ -15,8 +16,9 @@ import { exportarRelatorioPDF, exportarPlanilhaExcel } from '../services/exportS
 
 export default function Header({
   isConnected, sessaoAtiva, serialStatus, lastUpdated, history,
-  onOpenSessionModal, onOpenSerialModal, onWebSerialData
+  onOpenSessionModal, onOpenSerialModal, onWebSerialData, onOpenOnlineSyncModal
 }) {
+  const { isTech, logout, setIsLoginModalOpen } = useAuth();
   const [isMuted, setIsMuted] = useState(audioAlerts.isMuted());
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -74,13 +76,15 @@ export default function Header({
           </NavLink>
         </div>
 
-        {/* Gerenciamento de Sessão */}
-        <button className="btn" onClick={onOpenSessionModal} title="Gerenciar Sessões">
-          <FolderSimple size={14} weight="duotone" className="text-slate-400" />
-          <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {sessaoAtiva?.nome || 'Nenhuma Sessão'}
-          </span>
-        </button>
+        {/* Gerenciamento de Sessão (Equipe Técnica) */}
+        {isTech && (
+          <button className="btn" onClick={onOpenSessionModal} title="Gerenciar Sessões">
+            <FolderSimple size={14} weight="duotone" className="text-slate-400" />
+            <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {sessaoAtiva?.nome || 'Nenhuma Sessão'}
+            </span>
+          </button>
+        )}
 
         {/* Menu Dropdown de Exportação (PDF / Excel / CSV) */}
         <div className="relative inline-block text-left">
@@ -127,20 +131,52 @@ export default function Header({
           )}
         </div>
 
-        {/* Status Serial Backend */}
-        <button
-          className="btn"
-          onClick={onOpenSerialModal}
-          title="Porta Serial USB via Backend"
-          style={serialStatus?.status === 'connected' ? { borderColor: 'rgba(0,230,118,0.4)' } : {}}
-        >
-          <Cpu size={14} weight="duotone" className={serialStatus?.status === 'connected' ? "text-emerald-400" : "text-slate-400"} />
-          <span>{serialStatus?.status === 'connected' ? `LoRa (${serialStatus.port})` : 'Serial Server'}</span>
-          <span className={`led ${serialStatus?.status === 'connected' ? 'led-green' : 'led-red'}`} />
-        </button>
+        {/* Controles de Hardware exclusivos da Equipe Técnica */}
+        {isTech ? (
+          <>
+            <button
+              className="btn"
+              onClick={onOpenSerialModal}
+              title="Porta Serial USB via Backend"
+              style={serialStatus?.status === 'connected' ? { borderColor: 'rgba(0,230,118,0.4)' } : {}}
+            >
+              <Cpu size={14} weight="duotone" className={serialStatus?.status === 'connected' ? "text-emerald-400" : "text-slate-400"} />
+              <span>{serialStatus?.status === 'connected' ? `LoRa (${serialStatus.port})` : 'Serial Server'}</span>
+              <span className={`led ${serialStatus?.status === 'connected' ? 'led-green' : 'led-red'}`} />
+            </button>
 
-        {/* Widget Web Serial Direto (Browser <-> ESP32) */}
-        <WebSerialWidget onDataReceived={onWebSerialData} />
+            <button
+              className="btn"
+              onClick={onOpenOnlineSyncModal}
+              title="Configurar Sincronização com Servidor Online (Computador A)"
+            >
+              <CloudArrowUp size={14} weight="duotone" className="text-cyan-400" />
+              <span>Online Sync</span>
+            </button>
+
+            <WebSerialWidget onDataReceived={onWebSerialData} />
+
+            <button
+              className="btn"
+              onClick={logout}
+              title="Bloquear painel (Voltar para Modo Espectador)"
+              style={{ borderColor: 'rgba(255,255,255,0.15)', color: '#00e5ff' }}
+            >
+              <LockKeyOpen size={14} weight="bold" />
+              <span>Técnico</span>
+            </button>
+          </>
+        ) : (
+          <button
+            className="btn"
+            onClick={() => setIsLoginModalOpen(true)}
+            title="Acesso da Equipe Técnica (Liberar Controles)"
+            style={{ border: '1px dashed rgba(0,229,255,0.4)', color: 'var(--text-dim)' }}
+          >
+            <LockKey size={14} weight="duotone" color="#00e5ff" />
+            <span>Entrar como Equipe</span>
+          </button>
+        )}
 
         {/* Botão de Som / Alertas Sonoros */}
         <button

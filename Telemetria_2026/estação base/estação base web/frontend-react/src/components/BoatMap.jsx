@@ -23,7 +23,7 @@ export default function BoatMap({ telemetryData, history = [] }) {
   const nav = telemetryData?.nav || {};
   const lat = parseFloat(nav.lat) || 0, lon = parseFloat(nav.lon) || 0;
   const proa = parseFloat(nav.proa) || 0, vel = nav.vel || 0, sats = nav.gps_satelites || 0;
-  const defaultPos = [-3.119, -60.021];
+  const defaultPos = [-22.41548354710283, -41.81782266355955]; // Lagoa de Imboassica (Macaé-RJ)
   const pos = (lat !== 0 && lon !== 0) ? [lat, lon] : defaultPos;
   const track = history.map(i => { const la = parseFloat(i.nav?.lat ?? i.lat), lo = parseFloat(i.nav?.lon ?? i.lon); return la && lo && la !== 0 ? [la, lo] : null; }).filter(Boolean);
 

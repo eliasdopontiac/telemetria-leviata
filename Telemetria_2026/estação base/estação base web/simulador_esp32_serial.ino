@@ -15,7 +15,7 @@
     "solar":   { "tensao": 48.5, "corrente": 6.2, "pot": 300.7 },
     "bateria": { "soc": 88.5, "tensao_bat": 51.8, "corrente_liq": -12.3 },
     "prop":    { "rpm": 1420, "i_motor": 18.5, "t_motor": 48, "t_ctrl": 39, "fardriver_falha": 0 },
-    "nav":     { "vel": 18.4, "lat": -3.11902, "lon": -60.02173, "proa": 120.5, "gps_satelites": 12, "gps_hora": "18:45:00", "hdop": 0.8 },
+    "nav":     { "vel": 18.4, "lat": -22.41548, "lon": -41.81782, "proa": 120.5, "gps_satelites": 12, "gps_hora": "18:45:00", "hdop": 0.8 },
     "sinal":   { "lora_pacotes": 142, "lora": -78 }
   }
   
@@ -40,8 +40,9 @@ int farFalha = 0;
 float socSim = 92.5;
 float angleSim = 0.0;
 
-const double LAT_MANAUS = -3.119020;
-const double LON_MANAUS = -60.021730;
+// Coordenadas da Lagoa de Imboassica (Macaé - RJ)
+const double LAT_BASE = -22.41548354710283;
+const double LON_BASE = -41.81782266355955;
 
 void setup() {
   Serial.begin(115200);
@@ -96,9 +97,9 @@ void loop() {
     int tMotor = (farFalha == 4) ? 89 : (40 + (int)(15.0 * (velKmh / 20.0)));
     int tCtrl = 35 + (int)(10.0 * (velKmh / 20.0));
 
-    // 4. GPS & Relógio
-    double lat = LAT_MANAUS + 0.0012 * sin(angleSim);
-    double lon = LON_MANAUS + 0.0012 * cos(angleSim);
+    // 4. GPS & Relógio (Trajetória na Lagoa de Imboassica)
+    double lat = LAT_BASE + 0.0012 * sin(angleSim);
+    double lon = LON_BASE + 0.0012 * cos(angleSim);
     float proa = fmod((angleSim * (180.0 / M_PI) + 360.0), 360.0);
 
     unsigned long totalSec = now / 1000;

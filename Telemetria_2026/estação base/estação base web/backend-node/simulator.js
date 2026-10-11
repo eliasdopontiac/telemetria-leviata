@@ -6,8 +6,8 @@ class Simulator {
     
     // Estado interno para variação contínua realista
     this.soc = 85.0;
-    this.lat = -3.1190;
-    this.lon = -60.0210;
+    this.lat = -22.415484;
+    this.lon = -41.817823;
     this.proa = 180.0;
     this.pktCount = 1;
   }
@@ -23,11 +23,17 @@ class Simulator {
     const rpm = Math.floor(1200 + Math.random() * 300);
     const vel = parseFloat((rpm * 0.015).toFixed(2));
     
-    // Atualização simples de latitude e longitude no trajeto
-    this.lat += (Math.random() - 0.49) * 0.0001;
-    this.lon += (Math.random() - 0.49) * 0.0001;
-    this.proa = parseFloat((170 + Math.random() * 20).toFixed(1));
-    this.soc = Math.max(10, parseFloat((this.soc - 0.01).toFixed(2)));
+    // Movimento orbital suave em torno da Lagoa de Imboassica
+    if (this.angle === undefined) this.angle = 0;
+    this.angle += 0.05;
+    if (this.angle > 2 * Math.PI) this.angle = 0;
+
+    const LAT_BASE = -22.415484;
+    const LON_BASE = -41.817823;
+    this.lat = LAT_BASE + 0.0012 * Math.sin(this.angle);
+    this.lon = LON_BASE + 0.0012 * Math.cos(this.angle);
+    this.proa = parseFloat(((this.angle * (180.0 / Math.PI) + 90.0) % 360.0).toFixed(1));
+    this.soc = Math.max(10, parseFloat((this.soc - 0.005).toFixed(2)));
 
     const potSolar = parseFloat((260 + Math.random() * 90).toFixed(1));
     const vSolar = parseFloat((46.5 + (Math.random() - 0.5)).toFixed(2));

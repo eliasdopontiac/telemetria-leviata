@@ -46,9 +46,16 @@ db.serialize(() => {
       pkt_seq INTEGER,
       v_sist REAL,
       status_data TEXT,
+      uid TEXT,
+      enviado INTEGER DEFAULT 0,
       FOREIGN KEY (sessao_id) REFERENCES sessoes(id) ON DELETE CASCADE
     )
   `);
+
+  // Migrações dinâmicas para bases já existentes
+  db.run("ALTER TABLE registros_telemetria ADD COLUMN uid TEXT", () => {});
+  db.run("ALTER TABLE registros_telemetria ADD COLUMN enviado INTEGER DEFAULT 0", () => {});
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_registros_uid ON registros_telemetria(uid)", () => {});
 
   // Se não existir nenhuma sessão, cria a sessão Padrão
   db.get("SELECT COUNT(*) as count FROM sessoes", (err, row) => {
@@ -110,9 +117,8 @@ function getSessaoAtivaOuUltima() {
 /**
  * Insere um pacote de telemetria no banco
  */
-function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial') {
+function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial', opts = {}) {
   return new Promise((resolve, reject) => {
-    const tsIso = new Date().toISOString();
     let data = {};
     try {
       if (typeof rawPayload === 'string') {
@@ -123,6 +129,10 @@ function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial') {
     } catch (e) {
       return reject(new Error('Payload JSON inválido'));
     }
+
+    const tsIso = opts.timestamp_iso || data.timestamp_iso || new Date().toISOString();
+    const uid = opts.uid || data.uid || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const enviado = opts.enviado !== undefined ? opts.enviado : (fonte === 'online_sync' ? 1 : 0);
 
     const s = data.solar || {};
     const b = data.bateria || {};
@@ -164,19 +174,19 @@ function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial') {
     const vSist = parseFloat(data.v_sist) || 0;
 
     const query = `
-      INSERT INTO registros_telemetria (
+      INSERT OR IGNORE INTO registros_telemetria (
         sessao_id, timestamp_iso, fonte, v_solar, i_solar, pot_solar,
         soc, v_bat, i_liq, rpm, i_motor, t_motor, t_ctrl, falha_ctrl,
         vel, lat, lon, proa, gps_satelites, gps_hora, hdop,
-        sinal_lora, sinal_lte, pkt_seq, v_sist, status_data
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sinal_lora, sinal_lte, pkt_seq, v_sist, status_data, uid, enviado
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
       sessaoId, tsIso, fonte, vSolar, iSolar, potSolar,
       soc, vBat, iLiq, rpm, iMotor, tMotor, tCtrl, falhaCtrl,
       vel, lat, lon, proa, gpsSatelites, gpsHora, hdop,
-      sinalLora, sinalLte, pktSeq, vSist, statusData
+      sinalLora, sinalLte, pktSeq, vSist, statusData, uid, enviado
     ];
 
     db.run(query, params, function (err) {
@@ -185,9 +195,11 @@ function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial') {
       } else {
         const registro = {
           id: this.lastID,
+          uid,
           sessao_id: sessaoId,
           timestamp_iso: tsIso,
           fonte,
+          enviado,
           solar: { tensao: vSolar, corrente: iSolar, pot: potSolar },
           bateria: { soc, tensao_bat: vBat, corrente_liq: iLiq },
           prop: { rpm, i_motor: iMotor, t_motor: tMotor, t_ctrl: tCtrl, fardriver_falha: falhaCtrl },
@@ -220,6 +232,39 @@ function getTelemetriaPorSessao(sessaoId, limit = 1000) {
   });
 }
 
+/**
+ * Obtém pacotes pendentes de sincronização online (Computador B)
+ */
+function getPacotesPendentes(limit = 50) {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT * FROM registros_telemetria
+      WHERE enviado = 0
+      ORDER BY id ASC
+      LIMIT ?
+    `;
+    db.all(query, [limit], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+/**
+ * Marca lista de UIDs como enviados com sucesso
+ */
+function marcarPacotesEnviados(uids = []) {
+  if (!uids || uids.length === 0) return Promise.resolve(0);
+  return new Promise((resolve, reject) => {
+    const placeholders = uids.map(() => '?').join(',');
+    const query = `UPDATE registros_telemetria SET enviado = 1 WHERE uid IN (${placeholders})`;
+    db.run(query, uids, function (err) {
+      if (err) reject(err);
+      else resolve(this.changes);
+    });
+  });
+}
+
 module.exports = {
   db,
   getSessoes,
@@ -227,5 +272,7 @@ module.exports = {
   deletarSessao,
   getSessaoAtivaOuUltima,
   salvarTelemetria,
-  getTelemetriaPorSessao
+  getTelemetriaPorSessao,
+  getPacotesPendentes,
+  marcarPacotesEnviados
 };

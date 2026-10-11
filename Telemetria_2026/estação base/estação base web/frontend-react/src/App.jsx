@@ -8,6 +8,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import SerialModal from './components/SerialModal';
 import SessionModal from './components/SessionModal';
+import OnlineSyncModal from './components/OnlineSyncModal';
+import LoginModal from './components/LoginModal';
+import { AuthProvider } from './context/AuthContext';
 
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -16,7 +19,7 @@ const DEFAULT_TELEMETRY = {
   solar: { tensao: 0, corrente: 0, pot: 0 },
   bateria: { soc: 0, tensao_bat: 0, corrente_liq: 0 },
   prop: { rpm: 0, i_motor: 0, t_motor: 0, t_ctrl: 0, fardriver_falha: 0 },
-  nav: { vel: 0, proa: 0, lat: -3.119, lon: -60.021, gps_satelites: 0, gps_hora: '--:--:--' },
+  nav: { vel: 0, proa: 0, lat: -22.41548354710283, lon: -41.81782266355955, gps_satelites: 0, gps_hora: '--:--:--' },
   sinal: { lora: 0, lte: 0, lora_pacotes: 0 },
   v_sist: 0, status_data: 'valid'
 };
@@ -29,6 +32,7 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [isSerialModalOpen, setIsSerialModalOpen] = useState(false);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  const [isOnlineSyncModalOpen, setIsOnlineSyncModalOpen] = useState(false);
 
   const carregarDados = async () => {
     try {
@@ -103,46 +107,58 @@ export default function App() {
     : (t.timestamp_iso ? new Date(t.timestamp_iso).toLocaleTimeString('pt-BR') : null);
 
   return (
-    <Router>
-      <div className="app-shell">
-        <Header
-          isConnected={isConnected}
-          sessaoAtiva={sessaoAtiva}
-          serialStatus={serialStatus}
-          lastUpdated={lastUpdated}
-          history={history}
-          onOpenSessionModal={() => setIsSessionModalOpen(true)}
-          onOpenSerialModal={() => setIsSerialModalOpen(true)}
-          onWebSerialData={handleWebSerialData}
-        />
-
-        <div className="page-content">
-          <Routes>
-            <Route path="/" element={<DashboardPage currentTelemetry={currentTelemetry} history={history} />} />
-            <Route path="/analytics" element={<AnalyticsPage history={history} />} />
-          </Routes>
-        </div>
-
-        {isSerialModalOpen && (
-          <SerialModal
-            isOpen={isSerialModalOpen}
-            onClose={() => setIsSerialModalOpen(false)}
-            serialStatus={serialStatus}
-          />
-        )}
-
-        {isSessionModalOpen && (
-          <SessionModal
-            isOpen={isSessionModalOpen}
-            onClose={() => setIsSessionModalOpen(false)}
+    <AuthProvider>
+      <Router>
+        <div className="app-shell">
+          <Header
+            isConnected={isConnected}
             sessaoAtiva={sessaoAtiva}
-            onSessaoChanged={(s) => {
-              setSessaoAtiva(s);
-              setIsSessionModalOpen(false);
-            }}
+            serialStatus={serialStatus}
+            lastUpdated={lastUpdated}
+            history={history}
+            onOpenSessionModal={() => setIsSessionModalOpen(true)}
+            onOpenSerialModal={() => setIsSerialModalOpen(true)}
+            onOpenOnlineSyncModal={() => setIsOnlineSyncModalOpen(true)}
+            onWebSerialData={handleWebSerialData}
           />
-        )}
-      </div>
-    </Router>
+
+          <div className="page-content">
+            <Routes>
+              <Route path="/" element={<DashboardPage currentTelemetry={currentTelemetry} history={history} />} />
+              <Route path="/analytics" element={<AnalyticsPage history={history} />} />
+            </Routes>
+          </div>
+
+          {isSerialModalOpen && (
+            <SerialModal
+              isOpen={isSerialModalOpen}
+              onClose={() => setIsSerialModalOpen(false)}
+              serialStatus={serialStatus}
+            />
+          )}
+
+          {isSessionModalOpen && (
+            <SessionModal
+              isOpen={isSessionModalOpen}
+              onClose={() => setIsSessionModalOpen(false)}
+              sessaoAtiva={sessaoAtiva}
+              onSessaoChanged={(s) => {
+                setSessaoAtiva(s);
+                setIsSessionModalOpen(false);
+              }}
+            />
+          )}
+
+          {isOnlineSyncModalOpen && (
+            <OnlineSyncModal
+              isOpen={isOnlineSyncModalOpen}
+              onClose={() => setIsOnlineSyncModalOpen(false)}
+            />
+          )}
+
+          <LoginModal />
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }

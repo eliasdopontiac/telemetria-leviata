@@ -36,17 +36,21 @@ let sessaoAtiva = null;
 })();
 
 // Processa e distribui dados de telemetria recebidos
-async function processarEDistribuir(payload, fonte = 'serial') {
+async function processarEDistribuir(payload, fonte = 'serial', opts = {}) {
   if (!sessaoAtiva) {
     sessaoAtiva = await dbModule.getSessaoAtivaOuUltima();
   }
-  if (!sessaoAtiva) return;
+  if (!sessaoAtiva) return null;
 
   try {
-    const registroSalvo = await dbModule.salvarTelemetria(sessaoAtiva.id, payload, fonte);
-    io.emit('telemetria_data', registroSalvo);
+    const registroSalvo = await dbModule.salvarTelemetria(sessaoAtiva.id, payload, fonte, opts);
+    if (registroSalvo) {
+      io.emit('telemetria_data', registroSalvo);
+    }
+    return registroSalvo;
   } catch (err) {
     console.error(`[Telemetria] Erro ao processar payload (${fonte}):`, err.message);
+    return null;
   }
 }
 
@@ -117,10 +121,13 @@ app.post('/api/sessoes/ativa', async (req, res) => {
   }
 });
 
-// Deletar sessão
+// Deletar sessão (com proteção opcional de trava de segurança)
 app.delete('/api/sessoes/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    if (process.env.TRAVAR_SESSOES === 'true') {
+      return res.status(403).json({ error: 'Operação bloqueada: As sessões estão travadas para segurança da prova.' });
+    }
     await dbModule.deletarSessao(id);
     if (sessaoAtiva && sessaoAtiva.id === parseInt(id, 10)) {
       sessaoAtiva = await dbModule.getSessaoAtivaOuUltima();
@@ -128,6 +135,40 @@ app.delete('/api/sessoes/:id', async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint de Ingestão de Telemetria Remota (Lote com Deduplicação)
+app.post('/api/ingest', async (req, res) => {
+  try {
+    const { pacotes } = req.body;
+    if (!pacotes || !Array.isArray(pacotes) || pacotes.length === 0) {
+      return res.status(400).json({ error: 'Nenhum pacote enviado.' });
+    }
+
+    const recebidos = [];
+    for (const item of pacotes) {
+      const payload = item.payload || item;
+      const uid = item.uid || payload.uid;
+      const tsIso = item.timestamp_iso || payload.timestamp_iso;
+
+      const salvo = await processarEDistribuir(payload, 'online_sync', {
+        uid,
+        timestamp_iso: tsIso,
+        enviado: 1
+      });
+
+      if (salvo && salvo.uid) {
+        recebidos.push(salvo.uid);
+      } else if (uid) {
+        recebidos.push(uid);
+      }
+    }
+
+    res.json({ success: true, count: recebidos.length, recebidos });
+  } catch (err) {
+    console.error('[API Ingest] Erro ao processar lote:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -244,6 +285,44 @@ app.post('/api/desconectar-serial', async (req, res) => {
   }
 });
 
+// Configuração Online (Computador B / Relé)
+const configOnlinePath = path.join(__dirname, 'config_online.json');
+
+app.get('/api/config-online', (req, res) => {
+  try {
+    if (fs.existsSync(configOnlinePath)) {
+      const cfg = JSON.parse(fs.readFileSync(configOnlinePath, 'utf8'));
+      return res.json(cfg);
+    }
+    res.json({ url_servidor_online: '', email_notificacao: {} });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config-online', (req, res) => {
+  try {
+    const { url_servidor_online, email_notificacao } = req.body;
+    let cfg = {};
+    if (fs.existsSync(configOnlinePath)) {
+      try { cfg = JSON.parse(fs.readFileSync(configOnlinePath, 'utf8')); } catch (_) {}
+    }
+    if (url_servidor_online !== undefined) cfg.url_servidor_online = url_servidor_online.trim();
+    if (email_notificacao) cfg.email_notificacao = { ...cfg.email_notificacao, ...email_notificacao };
+
+    fs.writeFileSync(configOnlinePath, JSON.stringify(cfg, null, 2), 'utf8');
+    
+    // Atualiza instância de uplink se ativa
+    if (global.uplinkManager) {
+      global.uplinkManager.carregarConfig();
+    }
+
+    res.json({ success: true, config: cfg });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Servir a aplicação Frontend React estática (build de produção)
 const frontendDistPath = path.join(__dirname, '../frontend-react/dist');
 const fs = require('fs');
@@ -281,8 +360,20 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(` ⚡ WebSocket: ws://localhost:${PORT}`);
   console.log(`=================================================`);
 
+  // Inicializa Uplink caso modo online esteja habilitado
+  if (process.env.MODO_ONLINE === 'true' || process.env.HABILITAR_UPLINK === 'true') {
+    try {
+      const UplinkManager = require('./uplink');
+      global.uplinkManager = new UplinkManager(io);
+      global.uplinkManager.iniciar();
+      console.log(' 📡 UPLINK ONLINE ATIVADO (Sincronização de Fila com Servidor Central)');
+    } catch (err) {
+      console.error(' [Uplink] Erro ao iniciar gerenciador:', err.message);
+    }
+  }
+
   // Abrir o navegador automaticamente no Windows
-  if (process.platform === 'win32') {
+  if (process.platform === 'win32' && process.env.SEM_NAVEGADOR !== 'true') {
     const { exec } = require('child_process');
     exec(`start http://localhost:${PORT}`);
   }

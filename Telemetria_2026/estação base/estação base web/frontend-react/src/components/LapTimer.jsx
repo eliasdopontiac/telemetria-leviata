@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Timer, Flag, Play, Stop, ArrowCounterClockwise } from '@phosphor-icons/react';
+import { Timer, Flag, Play, Stop, ArrowCounterClockwise, LockKey } from '@phosphor-icons/react';
+import { useAuth } from '../context/AuthContext';
 
 export default function LapTimer({ history = [], currentTelemetry }) {
   const [isRunning, setIsRunning] = useState(false);
@@ -39,18 +40,24 @@ export default function LapTimer({ history = [], currentTelemetry }) {
         </div>
       </div>
 
-      <div className="timer-controls">
-        <button className="btn" onClick={() => setIsRunning(!isRunning)}
-          style={isRunning ? { borderColor: 'rgba(255,23,68,0.4)', color: '#fca5a5' } : { borderColor: 'rgba(0,230,118,0.4)', color: '#86efac' }}>
-          {isRunning ? <><Stop size={12} weight="fill" />Pausar</> : <><Play size={12} weight="fill" />Iniciar</>}
-        </button>
-        <button className="btn" onClick={() => isRunning && timeMs > 0 && setLaps(p => [timeMs, ...p])} style={{ opacity: isRunning ? 1 : 0.4 }}>
-                    <Flag size={12} weight="fill" color="#ffb703" />Marcar Volta
-        </button>
-        <button className="btn" onClick={() => { setIsRunning(false); setTimeMs(0); setLaps([]); }}>
-                    <ArrowCounterClockwise size={12} weight="bold" />Zerar
-        </button>
-      </div>
+      {isTech ? (
+        <div className="timer-controls">
+          <button className="btn" onClick={() => setIsRunning(!isRunning)}
+            style={isRunning ? { borderColor: 'rgba(255,23,68,0.4)', color: '#fca5a5' } : { borderColor: 'rgba(0,230,118,0.4)', color: '#86efac' }}>
+            {isRunning ? <><Stop size={12} weight="fill" />Pausar</> : <><Play size={12} weight="fill" />Iniciar</>}
+          </button>
+          <button className="btn" onClick={() => isRunning && timeMs > 0 && setLaps(p => [timeMs, ...p])} style={{ opacity: isRunning ? 1 : 0.4 }}>
+            <Flag size={12} weight="fill" color="#ffb703" />Marcar Volta
+          </button>
+          <button className="btn" onClick={() => { setIsRunning(false); setTimeMs(0); setLaps([]); }}>
+            <ArrowCounterClockwise size={12} weight="bold" />Zerar
+          </button>
+        </div>
+      ) : (
+        <div style={{ padding: '6px 0', textAlign: 'center', fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+          🔒 Modo Espectador (Somente Leitura)
+        </div>
+      )}
 
       <div style={{ marginTop: 6, fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-dim)', textAlign: 'center' }}>
         Estatísticas Gerais da Sessão
