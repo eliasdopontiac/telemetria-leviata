@@ -66,9 +66,15 @@ class SerialManager {
           console.log(`Porta Serial conectada com sucesso: ${portPath} @ ${baudRate} bps`);
           this.notifyStatus('connected', { portPath, baudRate });
 
-          // Garante liberação de Reset e Bootloader no ESP32 (CP210x / CH340)
-          this.port.set({ dtr: true, rts: false }, (setErr) => {
-            if (setErr) console.warn('[Serial] Aviso DTR/RTS:', setErr.message);
+          // Sequência padrão para liberar o pino EN/RST do ESP32 (CP2102/CH340)
+          this.port.set({ dtr: false, rts: true }, () => {
+            setTimeout(() => {
+              if (this.port && this.port.isOpen) {
+                this.port.set({ dtr: false, rts: false }, (setErr) => {
+                  if (setErr) console.warn('[Serial] Aviso DTR/RTS:', setErr.message);
+                });
+              }
+            }, 100);
           });
 
           resolve(true);
