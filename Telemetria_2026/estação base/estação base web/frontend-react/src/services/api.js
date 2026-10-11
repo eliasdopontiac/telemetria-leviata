@@ -1,6 +1,14 @@
 const getBaseUrl = () => {
-  const host = window.location.hostname || 'localhost';
-  return `http://${host}:3001`;
+  // Se estiver acessando via túnel (ex: trycloudflare.com) ou domínio próprio na mesma porta
+  if (typeof window !== 'undefined' && window.location) {
+    const { protocol, hostname, port, origin } = window.location;
+    // Se a porta for padrão (80/443) ou for domínio público (como trycloudflare.com)
+    if (!port || port === '80' || port === '443' || hostname.includes('trycloudflare.com')) {
+      return origin;
+    }
+    return `${protocol}//${hostname}:3001`;
+  }
+  return 'http://localhost:3001';
 };
 
 export const API_BASE = getBaseUrl();
