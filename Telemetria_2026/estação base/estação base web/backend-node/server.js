@@ -44,7 +44,7 @@ async function processarEDistribuir(payload, fonte = 'serial', opts = {}) {
 
   try {
     const registroSalvo = await dbModule.salvarTelemetria(sessaoAtiva.id, payload, fonte, opts);
-    if (registroSalvo) {
+    if (registroSalvo && !registroSalvo.duplicado) {
       io.emit('telemetria_data', registroSalvo);
     }
     return registroSalvo;

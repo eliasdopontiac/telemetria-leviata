@@ -55,6 +55,8 @@ db.serialize(() => {
   // Migrações dinâmicas para bases já existentes
   db.run("ALTER TABLE registros_telemetria ADD COLUMN uid TEXT", () => {});
   db.run("ALTER TABLE registros_telemetria ADD COLUMN enviado INTEGER DEFAULT 0", () => {});
+  // Registros legados sem uid nunca poderiam receber ACK (loop de reenvio): gera uid e marca como já enviados
+  db.run("UPDATE registros_telemetria SET uid = 'legacy-' || id, enviado = 1 WHERE uid IS NULL", () => {});
   db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_registros_uid ON registros_telemetria(uid)", () => {});
 
   // Se não existir nenhuma sessão, cria a sessão Padrão
@@ -215,6 +217,8 @@ function salvarTelemetria(sessaoId, rawPayload, fonte = 'serial', opts = {}) {
           v_sist: vSist,
           status_data: statusData
         };
+        // changes === 0 => uid já existia (INSERT OR IGNORE): não é um dado novo
+        registro.duplicado = this.changes === 0;
         resolve(registro);
       }
     });
