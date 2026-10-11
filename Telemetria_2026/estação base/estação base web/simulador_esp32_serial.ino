@@ -28,6 +28,7 @@
 */
 
 #include <Arduino.h>
+#define ARDUINOJSON_USE_DOUBLE 1
 #include <ArduinoJson.h>
 #include <math.h>
 
@@ -97,10 +98,17 @@ void loop() {
     int tMotor = (farFalha == 4) ? 89 : (40 + (int)(15.0 * (velKmh / 20.0)));
     int tCtrl = 35 + (int)(10.0 * (velKmh / 20.0));
 
-    // 4. GPS & Relógio (Trajetória na Lagoa de Imboassica)
-    double lat = LAT_BASE + 0.0012 * sin(angleSim);
-    double lon = LON_BASE + 0.0012 * cos(angleSim);
-    float proa = fmod((angleSim * (180.0 / M_PI) + 360.0), 360.0);
+    // 4. GPS & Relógio (Trajetória de raia na Lagoa de Imboassica em torno do Home)
+    // Home: -22.41548354710283, -41.81782266355955
+    double dLat = 0.00085 * sin(angleSim);
+    double dLon = 0.00140 * cos(angleSim);
+    double lat = LAT_BASE + dLat;
+    double lon = LON_BASE + dLon;
+
+    // Proa tangencial (direção exata de deslocamento do barco em graus náuticos 0-360°)
+    double dLatDt = 0.00085 * cos(angleSim);
+    double dLonDt = -0.00140 * sin(angleSim);
+    float proa = fmod((atan2(dLonDt, dLatDt) * (180.0 / M_PI) + 360.0), 360.0);
 
     unsigned long totalSec = now / 1000;
     int h = (15 + (totalSec / 3600)) % 24;
@@ -134,8 +142,8 @@ void loop() {
 
     JsonObject nav = doc.createNestedObject("nav");
     nav["vel"] = serialized(String(velKmh, 1));
-    nav["lat"] = lat;
-    nav["lon"] = lon;
+    nav["lat"] = serialized(String(lat, 7)); // 7 casas decimais para precisão total
+    nav["lon"] = serialized(String(lon, 7));
     nav["gps_satelites"] = 12;
     nav["gps_hora"] = timeBuf;
     nav["proa"] = serialized(String(proa, 1));

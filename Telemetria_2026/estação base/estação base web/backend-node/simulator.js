@@ -30,9 +30,14 @@ class Simulator {
 
     const LAT_BASE = -22.41548354710283;
     const LON_BASE = -41.81782266355955;
-    this.lat = LAT_BASE + 0.0012 * Math.sin(this.angle);
-    this.lon = LON_BASE + 0.0012 * Math.cos(this.angle);
-    this.proa = parseFloat(((this.angle * (180.0 / Math.PI) + 90.0) % 360.0).toFixed(1));
+    const dLat = 0.00085 * Math.sin(this.angle);
+    const dLon = 0.00140 * Math.cos(this.angle);
+    this.lat = LAT_BASE + dLat;
+    this.lon = LON_BASE + dLon;
+
+    const dLatDt = 0.00085 * Math.cos(this.angle);
+    const dLonDt = -0.00140 * Math.sin(this.angle);
+    this.proa = parseFloat(((Math.atan2(dLonDt, dLatDt) * (180.0 / Math.PI) + 360.0) % 360.0).toFixed(1));
     this.soc = Math.max(10, parseFloat((this.soc - 0.005).toFixed(2)));
 
     const potSolar = parseFloat((260 + Math.random() * 90).toFixed(1));
