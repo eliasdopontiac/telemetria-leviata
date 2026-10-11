@@ -17,6 +17,18 @@ set "NODE_EXE=%~dp0node\node.exe"
 if not exist "%NODE_EXE%" set "NODE_EXE=node"
 
 cd /d "%~dp0backend-node"
+
+:: Verifica se as dependencias existem, senao instala
+if not exist "node_modules\express" (
+  echo Primeira execucao detectada: Instalando dependencias do backend...
+  call npm install
+  if %errorlevel% neq 0 (
+    echo [ERRO] Falha ao instalar dependencias com npm.
+    pause
+    exit /b
+  )
+)
+
 set MODO_ONLINE=true
 "%NODE_EXE%" server.js
 pause

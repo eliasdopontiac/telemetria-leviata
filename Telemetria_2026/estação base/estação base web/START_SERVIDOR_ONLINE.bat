@@ -15,11 +15,16 @@ if not exist "%NODE_EXE%" set "NODE_EXE=node"
 
 cd /d "%~dp0backend-node"
 
-:: Verifica se nodemailer está instalado, senão instala automaticamente se houver npm
-"%NODE_EXE%" -e "require('nodemailer')" >nul 2>&1
-if %errorlevel% neq 0 (
-  echo Verificando dependencias necessarias (nodemailer)...
-  call npm install nodemailer --save >nul 2>&1
+:: Verifica se as dependencias existem, senao instala
+if not exist "node_modules\express" (
+  echo Primeira execucao detectada: Instalando dependencias do backend...
+  call npm install
+  if %errorlevel% neq 0 (
+    echo [ERRO] Falha ao instalar dependencias com npm.
+    echo Certifique-se de que o Node.js esta instalado nesta maquina.
+    pause
+    exit /b
+  )
 )
 
 :: Inicia o backend Node.js
