@@ -51,7 +51,7 @@ class SerialManager {
           autoOpen: false
         });
 
-        this.parser = this.port.pipe(new ReadlineParser({ delimiter: '\n' }));
+        let buffer = '';
 
         this.port.open((err) => {
           if (err) {
@@ -66,18 +66,31 @@ class SerialManager {
           console.log(`Porta Serial conectada com sucesso: ${portPath} @ ${baudRate} bps`);
           this.notifyStatus('connected', { portPath, baudRate });
 
+          // Garante liberação de Reset e Bootloader no ESP32 (CP210x / CH340)
+          this.port.set({ dtr: true, rts: false }, (setErr) => {
+            if (setErr) console.warn('[Serial] Aviso DTR/RTS:', setErr.message);
+          });
+
           resolve(true);
         });
 
-        this.parser.on('data', (line) => {
-          const trimmed = line.trim();
-          if (!trimmed) return;
-          this.onDataCallbacks.forEach(cb => cb(trimmed));
+        // Leitura direta com buffer resiliente (nunca perde dados nem trava pipe)
+        this.port.on('data', (chunk) => {
+          buffer += chunk.toString('utf8');
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // Mantém o que ainda não terminou com \n
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed) {
+              this.onDataCallbacks.forEach(cb => cb(trimmed));
+            }
+          }
         });
 
         this.port.on('close', () => {
           console.log(`Porta serial fechada: ${this.currentPortPath}`);
           this.isConnected = false;
+          buffer = '';
           this.notifyStatus('disconnected');
         });
 
