@@ -29,6 +29,11 @@ if not exist "node_modules\express" (
   )
 )
 
+:: Libera a porta 3001 caso haja uma instancia anterior presa
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3001" ^| findstr "LISTENING"') do (
+  taskkill /f /pid %%a >nul 2>&1
+)
+
 set MODO_ONLINE=true
 "%NODE_EXE%" server.js
 pause
