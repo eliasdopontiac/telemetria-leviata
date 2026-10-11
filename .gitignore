@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 
 # PyInstaller build artifacts
-build/
-dist/
+/build/
+/dist/
 *.spec
 
 # Virtual Environments
