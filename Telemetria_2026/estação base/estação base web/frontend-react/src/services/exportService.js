@@ -49,7 +49,7 @@ export function calcularEstatisticasSessao(history = []) {
     const b = item.bateria || {};
     const n = item.nav || {};
 
-    const vel = Number(n.vel ?? item.vel ?? 0);
+    const vel = Number(n.vel ?? item.vel ?? 0) * 0.539957;
     const pot = Number(s.pot ?? item.pot_solar ?? 0);
     const iMot = Number(p.i_motor ?? item.i_motor ?? 0);
     const tMot = Number(p.t_motor ?? item.t_motor ?? 0);
@@ -164,8 +164,8 @@ export async function exportarRelatorioPDF(sessao, history = []) {
           widths: ['*', '*', '*', '*'],
           body: [
             [
-              { text: 'Velocidade Máxima\n' + stats.velMax + ' km/h', style: 'kpiBox', fillColor: '#f0f9ff' },
-              { text: 'Velocidade Média\n' + stats.velMedia + ' km/h', style: 'kpiBox', fillColor: '#f0f9ff' },
+              { text: 'Velocidade Máxima\n' + stats.velMax + ' nós', style: 'kpiBox', fillColor: '#f0f9ff' },
+              { text: 'Velocidade Média\n' + stats.velMedia + ' nós', style: 'kpiBox', fillColor: '#f0f9ff' },
               { text: 'Potência Solar Máx\n' + stats.potSolarMax + ' W', style: 'kpiBox', fillColor: '#fefce8' },
               { text: 'Potência Solar Média\n' + stats.potSolarMedia + ' W', style: 'kpiBox', fillColor: '#fefce8' }
             ],
@@ -194,7 +194,7 @@ export async function exportarRelatorioPDF(sessao, history = []) {
           body: [
             [
               { text: 'Hora', style: 'tableHeader' },
-              { text: 'Vel (km/h)', style: 'tableHeader' },
+              { text: 'Vel (nós)', style: 'tableHeader' },
               { text: 'RPM', style: 'tableHeader' },
               { text: 'V.Bat (V)', style: 'tableHeader' },
               { text: 'I.Liq (A)', style: 'tableHeader' },
@@ -215,7 +215,7 @@ export async function exportarRelatorioPDF(sessao, history = []) {
 
               return [
                 { text: hora, style: 'tableCell' },
-                { text: (n.vel ?? r.vel ?? 0).toFixed(1), style: 'tableCell' },
+                { text: ((n.vel ?? r.vel ?? 0) * 0.539957).toFixed(1), style: 'tableCell' },
                 { text: (p.rpm ?? r.rpm ?? 0), style: 'tableCell' },
                 { text: (b.tensao_bat ?? r.v_bat ?? 0).toFixed(1), style: 'tableCell' },
                 { text: (b.corrente_liq ?? r.i_liq ?? 0).toFixed(1), style: 'tableCell' },
@@ -276,8 +276,8 @@ export async function exportarPlanilhaExcel(sessao, history = []) {
     { param: 'Nome da Sessão', valor: sessao?.nome || 'Telemetria Geral', unidade: '-' },
     { param: 'Identificador (ID)', valor: sessao?.id || 'Avulsa', unidade: '#' },
     { param: 'Total de Pacotes Processados', valor: stats.totalPontos, unidade: 'amostras' },
-    { param: 'Velocidade Máxima', valor: stats.velMax, unidade: 'km/h' },
-    { param: 'Velocidade Média', valor: stats.velMedia, unidade: 'km/h' },
+    { param: 'Velocidade Máxima', valor: stats.velMax, unidade: 'nós' },
+    { param: 'Velocidade Média', valor: stats.velMedia, unidade: 'nós' },
     { param: 'Potência Solar de Pico', valor: stats.potSolarMax, unidade: 'W' },
     { param: 'Potência Solar Média', valor: stats.potSolarMedia, unidade: 'W' },
     { param: 'Corrente Máxima do Motor', valor: stats.iMotorMax, unidade: 'A' },
@@ -296,7 +296,7 @@ export async function exportarPlanilhaExcel(sessao, history = []) {
     { header: 'Data/Hora ISO', key: 'timestamp_iso', width: 24 },
     { header: 'Hora GPS', key: 'gps_hora', width: 12 },
     { header: 'Fonte', key: 'fonte', width: 12 },
-    { header: 'Velocidade (km/h)', key: 'vel', width: 16 },
+    { header: 'Velocidade (nós)', key: 'vel', width: 16 },
     { header: 'RPM', key: 'rpm', width: 10 },
     { header: 'Tensao Solar (V)', key: 'v_solar', width: 16 },
     { header: 'Corrente Solar (A)', key: 'i_solar', width: 18 },
@@ -327,7 +327,7 @@ export async function exportarPlanilhaExcel(sessao, history = []) {
       timestamp_iso: r.timestamp_iso || '',
       gps_hora: n.gps_hora || r.gps_hora || '',
       fonte: r.fonte || 'serial',
-      vel: n.vel ?? r.vel ?? 0,
+      vel: (n.vel ?? r.vel ?? 0) * 0.539957,
       rpm: p.rpm ?? r.rpm ?? 0,
       v_solar: s.tensao ?? r.v_solar ?? 0,
       i_solar: s.corrente ?? r.i_solar ?? 0,

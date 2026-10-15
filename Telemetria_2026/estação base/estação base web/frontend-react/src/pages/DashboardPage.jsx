@@ -20,7 +20,7 @@ export default function DashboardPage({ currentTelemetry, history }) {
   const iMotor = p.i_motor ?? t.i_motor ?? 0;
   const tMotor = p.t_motor ?? t.t_motor ?? 0;
   const tCtrl = p.t_ctrl ?? t.t_ctrl ?? 0;
-  const vel = n.vel ?? t.vel ?? 0;
+  const vel = (n.vel ?? t.vel ?? 0) * 0.539957; // km/h -> nós
   
   const sig = t.sinal || {};
   const lora = sig.lora ?? t.sinal_lora ?? 0;
@@ -34,9 +34,9 @@ export default function DashboardPage({ currentTelemetry, history }) {
         {/* COLUNA ESQUERDA: Manômetros + Bateria + Gráfico de Corrente */}
         <div className="dashboard-col">
           <div className="gauge-row">
-            <CircularGauge title="Velocidade" value={vel} unit="km/h" min={0} max={30} warningThreshold={22} dangerThreshold={26} color="#00f2fe" icon={NavigationArrow} />
+            <CircularGauge title="Velocidade" value={vel} unit="nós" min={0} max={16} warningThreshold={12} dangerThreshold={14} color="#00f2fe" icon={NavigationArrow} />
             <CircularGauge title="RPM" value={rpm} unit="RPM" min={0} max={2500} warningThreshold={1800} dangerThreshold={2200} color="#38bdf8" icon={Gauge} />
-            <CircularGauge title="Solar" value={potSolar} unit="W" min={0} max={500} color="#ffb703" icon={Lightning} />
+            <CircularGauge title="Solar" value={potSolar} unit="W" min={0} max={1200} color="#ffb703" icon={Lightning} />
           </div>
           <BatteryWidget telemetryData={t} />
           <EnergyChartWidget history={history} />

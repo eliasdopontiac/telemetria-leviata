@@ -49,7 +49,7 @@ export default function BoatMap({ telemetryData, history = [] }) {
           <MapRecenter center={pos} />
           {track.length > 1 && <Polyline positions={track} pathOptions={{ color: '#ff6b00', weight: 3.5, opacity: 0.95 }} />}
           <Marker position={pos} icon={boatIcon(proa)}>
-            <Popup><div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', background: '#0f172a', color: '#f1f5f9', padding: '4px 2px', borderRadius: 4 }}><strong style={{ color: '#ff6b00' }}>Barco Leviatã</strong><br />Vel: {vel.toFixed(1)} km/h | Proa: {proa.toFixed(1)}°</div></Popup>
+            <Popup><div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', background: '#0f172a', color: '#f1f5f9', padding: '4px 2px', borderRadius: 4 }}><strong style={{ color: '#ff6b00' }}>Barco Leviatã</strong><br />Vel: {(vel * 0.539957).toFixed(1)} nós | Proa: {proa.toFixed(1)}°</div></Popup>
           </Marker>
         </MapContainer>
       </div>

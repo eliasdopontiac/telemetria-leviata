@@ -19,7 +19,7 @@ export default function LapTimer({ history = [], currentTelemetry }) {
     return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}.${Math.floor((ms % 1000) / 100)}`;
   };
 
-  const speeds = history.map(h => h.nav?.vel ?? h.vel).filter(v => typeof v === 'number' && !isNaN(v));
+  const speeds = history.map(h => (h.nav?.vel ?? h.vel) * 0.539957).filter(v => typeof v === 'number' && !isNaN(v));
   const maxVel = speeds.length > 0 ? Math.max(...speeds) : 0;
   const avgVel = speeds.length > 0 ? (speeds.reduce((a, b) => a + b, 0) / speeds.length) : 0;
   const bestLap = laps.length > 0 ? Math.min(...laps) : null;
@@ -67,11 +67,11 @@ export default function LapTimer({ history = [], currentTelemetry }) {
       <div className="timer-stats">
         <div className="timer-stat">
           <div className="timer-stat-label">Vel. Máxima</div>
-          <div className="timer-stat-value">{maxVel.toFixed(1)} km/h</div>
+          <div className="timer-stat-value">{maxVel.toFixed(1)} nós</div>
         </div>
         <div className="timer-stat" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="timer-stat-label">Vel. Média</div>
-          <div className="timer-stat-value" style={{ color: '#00f2fe' }}>{avgVel.toFixed(1)} km/h</div>
+          <div className="timer-stat-value" style={{ color: '#00f2fe' }}>{avgVel.toFixed(1)} nós</div>
         </div>
         <div className="timer-stat">
           <div className="timer-stat-label">Best Lap</div>
