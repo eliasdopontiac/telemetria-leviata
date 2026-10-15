@@ -20,6 +20,17 @@ cd /d "%~dp0backend-node"
 
 :: Verifica se as dependencias existem, senao instala
 if not exist "node_modules\express" (
+  where npm >nul 2>&1
+  if errorlevel 1 (
+    echo [ERRO] npm nao encontrado. Instale o Node.js LTS completo ^(inclui npm^).
+    echo Tentando instalar via winget...
+    winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
+    echo.
+    echo Instalacao concluida. FECHE esta janela e execute o .bat novamente.
+    echo Se falhar, baixe em https://nodejs.org
+    pause
+    exit /b
+  )
   echo Primeira execucao detectada: Instalando dependencias do backend...
   call npm install
   if %errorlevel% neq 0 (
