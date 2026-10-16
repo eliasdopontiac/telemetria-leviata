@@ -122,7 +122,7 @@ void setup() {
 
     RADIOLIB_OR_HALT(radio.begin());
     radio.setFrequency(915.0);
-    radio.setSpreadingFactor(10);
+    radio.setSpreadingFactor(12);
     radio.setBandwidth(125.0);
     radio.setOutputPower(20);
 
@@ -183,7 +183,7 @@ void loop() {
     parseMPPT();
 
     static bool tx_in_progress = false;
-    if (millis() - lastSend > 2500) {
+    if (millis() - lastSend > 5000) { // SF12: airtime ~2.8s, intervalo precisa ser maior
         lastSend = millis();
 
         if (tx_in_progress) {

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Telemetria Leviata 2026 - Estacao Base LoRa (Receptor - FIXED)
  * Hardware: TTGO/Heltec V2 (ESP32 Classico + LoRa SX1276)
  */
@@ -51,7 +51,7 @@ void setup() {
         Serial.println("{\"erro_local\":\"Falha LoRa\"}");
         while (1);
     }
-    LoRa.setSpreadingFactor(10);
+    LoRa.setSpreadingFactor(12);
     LoRa.setSignalBandwidth(125E3);
 }
 
