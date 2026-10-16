@@ -15,6 +15,18 @@ if not exist "%NODE_EXE%" set "NODE_EXE=node"
 
 cd /d "%~dp0backend-node"
 
+:: Recompila o frontend (se as dependencias existirem) para refletir as ultimas alteracoes
+if exist "..\frontend-react\node_modules" (
+  where npm >nul 2>&1
+  if not errorlevel 1 (
+    echo Recompilando o frontend...
+    pushd "..\frontend-react"
+    call npm run build
+    popd
+  )
+)
+
+
 :: Verifica se as dependencias existem, senao instala
 if not exist "node_modules\express" (
   echo Primeira execucao detectada: Instalando dependencias do backend...

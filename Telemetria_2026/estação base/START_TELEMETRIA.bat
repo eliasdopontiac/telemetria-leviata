@@ -16,5 +16,17 @@ set "NODE_EXE=%~dp0estação base web\node\node.exe"
 if not exist "%NODE_EXE%" set "NODE_EXE=node"
 
 cd /d "%~dp0estação base web\backend-node"
+
+:: Recompila o frontend (se as dependencias existirem) para refletir as ultimas alteracoes
+if exist "..\frontend-react\node_modules" (
+  where npm >nul 2>&1
+  if not errorlevel 1 (
+    echo Recompilando o frontend...
+    pushd "..\frontend-react"
+    call npm run build
+    popd
+  )
+)
+
 "%NODE_EXE%" server.js
 pause
