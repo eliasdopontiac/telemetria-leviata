@@ -35,7 +35,7 @@ export default function DashboardPage({ currentTelemetry, history }) {
         <div className="dashboard-col">
           <div className="gauge-row">
             <CircularGauge title="Velocidade" value={vel} unit="nós" min={0} max={16} warningThreshold={12} dangerThreshold={14} color="#00f2fe" icon={NavigationArrow} />
-            <CircularGauge title="RPM" value={rpm} unit="RPM" min={0} max={2500} warningThreshold={1800} dangerThreshold={2200} color="#38bdf8" icon={Gauge} />
+            <CircularGauge title="RPM" value={rpm} unit="RPM" min={0} max={5500} warningThreshold={4000} dangerThreshold={5000} color="#38bdf8" icon={Gauge} />
             <CircularGauge title="Solar" value={potSolar} unit="W" min={0} max={1200} color="#ffb703" icon={Lightning} />
           </div>
           <BatteryWidget telemetryData={t} />
