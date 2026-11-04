@@ -27,3 +27,9 @@ node_modules/
 *.njsproj
 *.sln
 *.sw?
+
+# Sensitive config files with credentials
+**/config_online.json
+.env
+*.env
+

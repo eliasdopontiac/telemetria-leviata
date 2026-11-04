@@ -1,131 +1,91 @@
-# Telemetria Leviatã 2027: Gêmeo Digital & Nova Arquitetura de Comunicação
+# Telemetria Leviatã 2027: Gêmeo Digital 3D & Site Didático da Montagem
 
-Este documento estabelece o planejamento de viabilidade, engenharia e arquitetura para a **Telemetria 2027** da equipe Leviatã. O objetivo central é a evolução do sistema de monitoramento tradicional para um **Gêmeo Digital (Digital Twin) Interativo**, combinando a precisão do modelo CAD com o poder de animação vetorial do **Anime.js** e comunicação híbrida de alta performance (**LoRa + Celular SIM7000G**).
-
----
-
-## 1. Visão Geral do Projeto
-
-O Gêmeo Digital do Leviatã 2027 operará em **dois modos complementares**:
-
-```
-+-------------------------------------------------------------------------+
-|                         GÊMEO DIGITAL LEVIATÃ 2027                      |
-+------------------------------------+------------------------------------+
-| Modo 1: Tour de Montagem Explicativo | Modo 2: Operação em Tempo Real    |
-| (Assembly Walkthrough & Exploded)   | (Live Telemetry Digital Twin)      |
-| • Do volante até o casco completo  | • Sincronizado aos sensores reais  |
-| • Efeito blueprint / wireframe     | • Rotação de hélice & ângulo leme  |
-| • Foco técnico, didático e bancas  | • Mapa térmico e fluxo de energia  |
-+------------------------------------+------------------------------------+
-```
+Este documento estabelece o planejamento de viabilidade, arquitetura e engenharia para a **Telemetria 2027** da equipe Leviatã. O projeto é dividido em **duas frentes independentes**, aproveitando os modelos CAD já desenhados pela equipe e respeitando a execução leve em notebooks sem placa de vídeo dedicada (GPU integrada Ryzen 7).
 
 ---
 
-## 2. Parte 1: Pipeline Gráfico (Do CAD 3D ao Anime.js)
+## 1. Visão Geral: Divisão em Dois Projetos
 
-Para atingir a estética visual moderna e futurista (inspirada na homepage oficial do **Anime.js**) sem sobrecarregar navegadores com engines 3D pesadas, adotamos o pipeline **CAD-to-Vector**:
+Para manter a estação de telemetria enxuta durante a prova e ao mesmo tempo ter uma apresentação didática de alto impacto para bancas, patrocinadores e novos membros, a arquitetura foi separada:
+
+| Projeto | Foco Principal | Rota Gráfica | Onde Roda |
+| :--- | :--- | :--- | :--- |
+| **Frente 1: Site Didático da Montagem** *(Leviatã Showcase)* | Explicar passo a passo cada subsistema da embarcação, **do volante até o barco completo** | **Rota B: SVG Vetorial + Anime.js** (estilo blueprint/wireframe com traçado a laser) | Site estático independente (GitHub Pages / Vercel), acessível via QR Code no celular ou PC |
+| **Frente 2: Gêmeo Digital na Telemetria** *(Estação Base)* | Espelhar o estado físico, térmico e energético do barco **em tempo real** durante a navegação | **Rota A: Barco 3D Completo (glTF simplificado + Three.js)** com câmera panorâmica 360° | Integrado ao dashboard React + Node.js + Socket.IO da Estação Base |
+
+---
+
+## 2. Frente 1: Site Didático da Montagem (Rota B — SVG + Anime.js)
+
+Um site público e leve, focado exclusivamente na engenharia e montagem da embarcação.
 
 ```mermaid
 flowchart LR
-    CAD["1. Modelo CAD 3D\n(SolidWorks/Inventor/Fusion)"] --> Export["2. Exportar Vista Isométrica\n(Linhas de desenho técnico)"]
-    Export --> SVG["3. SVG Estruturado\n(IDs por componente)"]
-    SVG --> Anime["4. Anime.js Engine\n(Line-drawing + física de encaixe)"]
+    CAD["1. Peças no CAD 3D\n(Já modeladas)"] --> Export["2. Exportar Vista Isométrica\n(Linhas técnicas por peça)"]
+    Export --> SVG["3. SVG com IDs Semânticos\n(#volante, #leme, #motor...)"]
+    SVG --> Anime["4. Timeline Anime.js\n(Montagem passo a passo)"]
 ```
 
-### 2.1. Como funciona a conversão das peças
-1. **Origem Fidedigna (CAD):** As peças reais já modeladas pela equipe de mecânica/naval (volante, cubo de direção, cabos de comando, leme, motor, hélice, bancos de bateria, suportes e casco) são posicionadas na vista isométrica desejada.
-2. **Exportação Técnica:** A montagem é exportada em desenho 2D com linhas visíveis (formato vetorial DXF, PDF ou SVG).
-3. **Organização Semântica:** No software de vetorização (Illustrator, Figma ou Inkscape), cada subsistema recebe um ID específico:
-   * `#g-volante` e `#g-cubo-direcao`
-   * `#g-cabos-comando` e `#g-leme`
-   * `#g-motor` e `#g-eixo-helice`
-   * `#g-banco-baterias` e `#g-painel-solar`
-   * `#g-casco-inferior` e `#g-deck`
-
-### 2.2. Efeitos Técnicos com Anime.js
-* **Efeito Traçado a Laser (*Line Drawing*):** Através da propriedade `strokeDashoffset`, os contornos das peças se desenham suavemente do nada, dando o aspecto de blueprint animado.
-* **Física de Encaixe (*Easing Elastic*):** Peças deslizam pelo eixo isométrico e se acoplam com leve amortecimento mecânico (`easeOutElastic` ou `easeOutExpo`).
-* **Storytelling / Linha do Tempo (`anime.timeline`):** Controles de *Play*, *Pausar*, *Avançar Etapa*, *Voltar* e *Explodir Montagem*, sincronizados com cards explicativos de cada sistema da embarcação.
+### Como funciona:
+1. **Exportação por Peça:** Cada conjunto do CAD (volante, cubo de direção, cabos de comando, leme, motor, eixo/hélice, baterias, painéis solares e casco) é exportado na mesma perspectiva isométrica como linhas vetoriais (SVG).
+2. **Estética Anime.js:**
+   * `strokeDashoffset`: o contorno de cada peça é desenhado na tela antes de ela se encaixar.
+   * `anime.timeline()`: permite dar *Play*, *Pause*, avançar/voltar etapa por etapa ou acionar a *Vista Explodida*, sincronizado com cards explicativos sobre o componente.
+3. **Consumo de Hardware:** Praticamente zero (arquivos de poucos kilobytes que rodam a 60 FPS em qualquer celular ou notebook).
 
 ---
 
-## 3. Parte 2: Arquitetura de Comunicação (LoRa + SIM7000G)
+## 3. Frente 2: Gêmeo Digital 3D na Telemetria (Rota A — glTF + Three.js)
 
-Para alimentar o gêmeo digital com dados contínuos, adotamos uma estratégia de **redundância híbrida**:
+Dentro da Estação Base Web, uma aba dedicada exibe o **barco 3D completo** conectado aos pacotes recebidos via Socket.IO.
 
-```mermaid
-flowchart TD
-    subgraph Embarcacao [Embarcação Leviatã]
-        Central["Central Heltec ESP32-S3"]
-        Central -->|Canal 1: 915 MHz P2P| RadioLoRa["Transmissor LoRa"]
-        Central -->|Canal 2: Serial UART| ModSIM["Módulo SIM7000G (LTE/GPS)"]
-    end
+### 3.1. Regras de Otimização para Notebook sem GPU Dedicada (Vídeo Integrado)
+Para rodar liso e sem drenar bateria no notebook da equipe:
+1. **Malha Simplificada (*Low-Poly* Técnico):** Exportar a montagem do CAD para `.glb/.gltf` removendo roscas, parafusos internos e detalhes invisíveis, mantendo o modelo total abaixo de **50 mil a 100 mil triângulos**.
+2. **Visual Técnico / Wireframe Flat:** Não usar sombras complexas, reflexos de água ou pós-processamento pesado. Usar materiais *flat/wireframe* sobre fundo escuro (mantendo a identidade visual do site didático com custo mínimo de GPU).
+3. **Limitação de DPR e Render sob Demanda:** Travar a densidade de pixels em `1–1.5` e atualizar quadros apenas quando a câmera se mover ou chegar pacote novo da telemetria.
 
-    subgraph Nuvem [Internet & Nuvem]
-        ModSIM -->|MQTT / 4G LTE-M / NB-IoT| CloudBroker["Broker MQTT / Servidor Web"]
-    end
-
-    subgraph Estacoes [Pontos de Visualização do Gêmeo Digital]
-        RadioLoRa -->|Recepção Local Direta| Tenda["Estação Base (Notebook Praia/Tenda)"]
-        CloudBroker --> TendaWeb["Estação Base Web"]
-        CloudBroker --> Mobile["Smartphones da Equipe nos Boxes"]
-        CloudBroker --> Telao["Telão de Transmissão da Prova"]
-    end
-```
-
-### Vantagens do Módulo SIM7000G:
-1. **Acesso Global sem Fio:** O gêmeo digital pode ser acessado de qualquer navegador, dentro ou fora da raia de prova.
-2. **Taxa de Atualização Rápida:** Transmissão a **5–10 Hz** (via MQTT), garantindo animações ultra suaves e sem solavancos.
-3. **GNSS/GPS Integrado:** Receptor de satélites nativo de alta precisão (latitude, longitude, velocidade *SOG* e curso *COG*).
-4. **Redundância:** O rádio LoRa permanece ativo como canal de emergência direto para a tenda caso haja sombra de sinal celular na represa/mar.
+### 3.2. Convenção Única de Nomes (CAD $\rightarrow$ SVG $\rightarrow$ 3D)
+Usar os mesmos identificadores nos nós do arquivo `.glb` e nos grupos do `.svg`:
+* `part_volante` / `part_cubo_direcao`
+* `part_leme`
+* `part_motor` / `part_helice`
+* `part_baterias` / `part_mppt` / `part_paineis`
+* `part_casco`
 
 ---
 
-## 4. Diagnóstico: O que reaproveitamos de 2026 vs. O que entra em 2027
+## 4. Diagnóstico da Telemetria: 2026 vs. 2027
 
-A arquitetura de 2027 reaproveita toda a fundação sólida construída em 2026:
+Toda a base construída em 2026 (React 19 + Tailwind CSS v4 + Node.js + SQLite3 + Socket.IO) é 100% reaproveitada.
 
-### ✅ Já existente e reaproveitado da Telemetria 2026:
-* **Leitura do Motor (Fardriver via UART):**
-  * `motor_rpm` $\rightarrow$ Controla rotação contínua da hélice.
-  * `motor_corrente_a` e `motor_v` $\rightarrow$ Cálculo de potência instantânea do trem de força.
-  * `motor_temp_c` e `ctrl_temp_c` $\rightarrow$ Mapa de calor e alertas térmicos sobre o motor/controlador.
-  * `far_falha` $\rightarrow$ Alerta visual localizado diretamente sobre a peça com falha.
-* **Leitura Solar e Baterias (Victron MPPT via VE.Direct):**
-  * `solar_p_w`, `solar_v_v`, `solar_i_a` $\rightarrow$ Animação de fluxo elétrico fluindo das placas para os barramentos.
-  * `bateria_v` $\rightarrow$ Indicador de nível e coloração dinâmica do banco de baterias no casco.
-* **Navegação (GPS TinyGPS++):**
-  * `lat`, `lng`, `vel_kmh`, `gps_course` $\rightarrow$ Rumo de navegação da proa e mapa de trajetória.
-* **Infraestrutura Web Base:**
-  * Backend Node.js com SQLite e distribuição em tempo real via **Socket.IO**.
-  * Frontend React estruturado com Tailwind CSS.
+### ✅ O que já existe em 2026 e alimentará o Barco 3D:
+* **Controlador Fardriver (`serialFar`):**
+  * `motor_rpm` $\rightarrow$ Rotação proporcional da hélice 3D.
+  * `motor_corrente_a` e `motor_v` $\rightarrow$ Indicador de potência elétrica consumida.
+  * `motor_temp_c` e `ctrl_temp_c` $\rightarrow$ Mudança de cor térmica direto no bloco do motor/controlador 3D.
+  * `far_falha` $\rightarrow$ Destaque piscante em vermelho na peça com código de erro.
+* **Controlador Solar Victron MPPT (`serialMPPT` — VE.Direct):**
+  * `solar_p_w`, `solar_v_v`, `solar_i_a` $\rightarrow$ Indicador visual de geração nos painéis solares 3D.
+  * `bateria_v` $\rightarrow$ Estado e cor do banco de baterias interno.
+* **GPS (`serialGPS` — TinyGPS++):**
+  * `lat`, `lng`, `vel_kmh`, `gps_course` $\rightarrow$ Orientação de proa do barco 3D e mapa.
 
----
+### 🚀 O que adicionar para 2027:
 
-### 🚀 Novas adições para a Telemetria 2027:
-
-| Subsistema | Nova Adição de Hardware / Sensor | Impacto no Gêmeo Digital |
+| Item | O que fazer | Resultado no Gêmeo Digital 3D |
 | :--- | :--- | :--- |
-| **Direção / Leme** | Potenciômetro linear no leme ou encoder magnético no volante | O volante na tela gira no ângulo exato do piloto e a pá do leme deflete em tempo real. |
-| **Atitude do Casco** | IMU de 6 ou 9 eixos (MPU6050 ou BNO055 via I2C) | O casco inclina na tela respondendo ao *Roll* (balanço lateral) e *Pitch* (arfagem) nas ondas. |
-| **Segurança de Porão** | Boias de nível / Sensores ópticos de água no porão | O ponto exato do fundo do casco pisca em vermelho se houver alagamento detectado. |
-| **Comunicação IoT** | Módulo celular SIM7000G (LTE-M / NB-IoT) | Conexão à nuvem sem fio via MQTT e pacote de alta frequência. |
-| **Interface Frontend** | Módulo `DigitalTwinView.jsx` integrado com `animejs` | Tela dedicada integrando a animação da montagem com o espelho em tempo real dos dados via Socket.IO. |
+| **1. Otimização do LoRa Atual (Prioridade 1)** | No `Firmware_LoRa_Central_Hub.ino`, reduzir o Spreading Factor de `SF12` para `SF7` ou `SF8` | Reduz o intervalo de envio de **5 segundos para ~0,5 segundo**, deixando o movimento do barco 3D fluido sem gastar nada em hardware novo. |
+| **2. Sensor de Ângulo de Direção/Leme** | Potenciômetro linear no leme ou encoder no eixo do volante | Volante e pá do leme giram no modelo 3D no mesmo ângulo físico do piloto. |
+| **3. IMU (MPU6050 / BNO055 via I2C)** | Leitura de *Roll* (balanço lateral) e *Pitch* (arfagem) | O casco 3D inclina em tempo real acompanhando as ondas. |
+| **4. Sensor de Porão (Boia)** | Pino digital no ESP32 detectando água no fundo do casco | Alarme visual piscando no fundo do casco 3D. |
+| **5. Módulo SIM7000G (Opcional / Experimental)** | Testar cobertura LTE-M/NB-IoT/2G na região da prova como canal redundante em nuvem via MQTT | Permite acompanhar a telemetria à distância pela internet onde houver cobertura de operadora, mantendo o LoRa como linha principal de segurança. |
 
 ---
 
-## 5. Próximos Passos e Roteiro de Execução
+## 5. Roteiro Prático de Execução
 
-1. **Sprint Gráfica (CAD & SVG):**
-   * Selecionar as peças no software CAD.
-   * Exportar a vista isométrica em formato vetorial com espessuras de linha padronizadas.
-   * Limpar o SVG no Illustrator/Figma e nomear os grupos com IDs claros.
-2. **Sprint de Hardware & Firmware:**
-   * Integrar a leitura do sensor de ângulo do leme e da IMU no ESP32-S3.
-   * Adicionar os novos campos à `struct_telemetry`.
-   * Realizar testes em bancada do SIM7000G transmitindo via MQTT para o servidor.
-3. **Sprint Frontend (Anime.js + Socket.IO):**
-   * Implementar o componente de montagem passo a passo guiada.
-   * Interpolar a chegada de pacotes da telemetria nas propriedades das peças do SVG para movimentos suaves a 60 FPS.
-
+1. **Etapa 1 — Ajuste Rápido no LoRa:** Testar `SF7`/`SF8` no firmware atual para validar a taxa de atualização rápida (< 1s).
+2. **Etapa 2 — Protótipo de Validação (3 peças):** Exportar apenas **volante, leme e hélice** do CAD (em SVG e em GLB simplificado) e animar com dados reais/simulados para validar o desempenho no notebook.
+3. **Etapa 3 — Site Didático da Montagem:** Exportar as demais peças em SVG e montar a linha do tempo explicativa com Anime.js.
+4. **Etapa 4 — Barco 3D Completo na Telemetria:** Integrar o modelo 3D leve na Estação Base e adicionar a IMU e o sensor de ângulo do leme na `struct_telemetry`.
